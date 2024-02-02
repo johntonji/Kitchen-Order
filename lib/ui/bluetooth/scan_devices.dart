@@ -1,10 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../../assets/app_assets.dart';
 import 'package:bluetooth_print/bluetooth_print.dart';
 import 'package:bluetooth_print/bluetooth_print_model.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import '../../assets/app_assets.dart';
 
 class ScanDevices extends StatefulWidget {
   const ScanDevices({Key? key}) : super(key: key);
@@ -14,16 +16,63 @@ class ScanDevices extends StatefulWidget {
 }
 
 class _ScanDevicesState extends State<ScanDevices> {
-
   BluetoothPrint bluetoothPrint = BluetoothPrint.instance;
+  String deviceMessage = "";
 
-  var _device;
+  bool _connected = false;
+  BluetoothDevice? _device;
+  String tips = 'no device connect';
 
   @override
   void initState() {
     super.initState();
+     //WidgetsBinding.instance.addPostFrameCallback((_) => checkPermission());
+      WidgetsBinding.instance.addPostFrameCallback((_) => initBluetooth());
+  }
 
-    checkPermission();
+  Future<void> initBluetooth() async {
+    /*await FlutterBluePlus.startScan(timeout: const Duration(seconds:15));
+    FlutterBluePlus.onScanResults.listen((results) {
+      if (results.isNotEmpty) {
+        print('---: ${results} found!');
+      }else{
+        print('---: empty!');
+      }
+    },
+      onError: (e) => print('---: $e'),
+    );*/
+
+
+    bluetoothPrint.startScan(timeout: const Duration(seconds: 10));
+    bool isConnected=await bluetoothPrint.isConnected??false;
+    bluetoothPrint.state.listen((state) {
+      print('******************* cur device status: $state');
+
+      switch (state) {
+        case BluetoothPrint.CONNECTED:
+          setState(() {
+            _connected = true;
+            tips = 'connect success';
+          });
+          break;
+        case BluetoothPrint.DISCONNECTED:
+          setState(() {
+            _connected = false;
+            tips = 'disconnect success';
+          });
+          break;
+        default:
+          break;
+      }
+    });
+
+    if (!mounted) return;
+
+    if(isConnected) {
+      setState(() {
+        _connected=true;
+      });
+    }
   }
 
   checkPermission() async {
@@ -53,14 +102,8 @@ class _ScanDevicesState extends State<ScanDevices> {
       locationStatus = await Permission.location.request();
     }
 
-    //bluetoothPrint.startScan(timeout: const Duration(seconds: 4));
-
-
     if (bluetoothStatus.isGranted && locationStatus.isGranted) {
-      bluetoothPrint.startScan(timeout: const Duration(seconds: 4)).then((value) {
-        //print(bluetoothPrint.scanResults.length);
-        bluetoothPrint.stopScan();
-      });
+      initBluetooth();
     }else{
       print("something is missing");
       openAppSettings();
@@ -69,79 +112,166 @@ class _ScanDevicesState extends State<ScanDevices> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        body: Container(
-          width: MediaQuery.of(context).size.width,
-          height: MediaQuery.of(context).size.height,
-          color: AppAssets.backgroundColor,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Printer Connectivity'),
+      ),
+      body: RefreshIndicator(
+        onRefresh: () =>
+            bluetoothPrint.startScan(timeout: const Duration(seconds: 10)),
+        child: SingleChildScrollView(
           child: Column(
-            children: [
+            children: <Widget>[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                    child: Text(tips),
+                  ),
+                ],
+              ),
+              const Divider(),
+              StreamBuilder<List<BluetoothDevice>>(
+                stream: bluetoothPrint.scanResults,
+                initialData: [],
+                builder: (c, snapshot) => Column(
+                  children: snapshot.data!.map((d) => ListTile(
+                    title: Text(d.name??''),
+                    subtitle: Text(d.address??''),
+                    onTap: () async {
+                      setState(() {
+                        _device = d;
+                      });
+                    },
+                    trailing: _device!=null && _device!.address == d.address? const Icon(
+                      Icons.check,
+                      color: Colors.green,
+                    ):null,
+                  )).toList(),
+                ),
+              ),
+              const Divider(),
               Container(
-                width: double.infinity,
-                height: 60,
-                padding: const EdgeInsets.only(left: 0, right: 10),
-                decoration: BoxDecoration(
-                    color: AppAssets.whiteColor,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppAssets.textNormalGrayColor.withOpacity(0.05),
-                        spreadRadius: 6,
-                        blurRadius: 6,
-                        offset: const Offset(0, 3), // changes position of shadow
-                      )]
+                padding: const EdgeInsets.fromLTRB(20, 5, 20, 10),
+                child: Column(
+                  children: <Widget>[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        OutlinedButton(
+                          onPressed:  _connected?null:() async {
+                            if(_device!=null && _device!.address !=null){
+                              setState(() {
+                                tips = 'connecting...';
+                              });
+                              await bluetoothPrint.connect(_device!);
+                            }else{
+                              setState(() {
+                                tips = 'please select device';
+                              });
+                              print('please select device');
+                            }
+                          },
+                          child: const Text('connect'),
+                        ),
+                        const SizedBox(width: 10.0),
+                        OutlinedButton(
+                          onPressed:  _connected?() async {
+                            setState(() {
+                              tips = 'disconnecting...';
+                            });
+                            await bluetoothPrint.disconnect();
+                          }:null,
+                          child: const Text('disconnect'),
+                        ),
+                      ],
+                    ),
+                    const Divider(),
+                    OutlinedButton(
+                      onPressed:  _connected?() async {
+                        Map<String, dynamic> config = Map();
+
+                        List<LineText> list = [];
+
+                        list.add(LineText(type: LineText.TYPE_TEXT, content: '**********************************************', weight: 1, align: LineText.ALIGN_CENTER,linefeed: 1));
+                        list.add(LineText(type: LineText.TYPE_TEXT, content: 'EatsBee', weight: 1, align: LineText.ALIGN_CENTER, fontZoom: 2, linefeed: 1));
+                        list.add(LineText(linefeed: 1));
+
+                        list.add(LineText(type: LineText.TYPE_TEXT, content: '----------------------EatsBee---------------------', weight: 1, align: LineText.ALIGN_CENTER, linefeed: 1));
+                        list.add(LineText(type: LineText.TYPE_TEXT, content: 'EatsBee', weight: 1, align: LineText.ALIGN_LEFT, x: 0,relativeX: 0, linefeed: 0));
+                        list.add(LineText(type: LineText.TYPE_TEXT, content: 'EatsBee', weight: 1, align: LineText.ALIGN_LEFT, x: 350, relativeX: 0, linefeed: 0));
+                        list.add(LineText(type: LineText.TYPE_TEXT, content: 'EatsBee', weight: 1, align: LineText.ALIGN_LEFT, x: 500, relativeX: 0, linefeed: 1));
+
+                        list.add(LineText(type: LineText.TYPE_TEXT, content: 'EatsBee', align: LineText.ALIGN_LEFT, x: 0,relativeX: 0, linefeed: 0));
+                        list.add(LineText(type: LineText.TYPE_TEXT, content: 'EatsBee', align: LineText.ALIGN_LEFT, x: 350, relativeX: 0, linefeed: 0));
+                        list.add(LineText(type: LineText.TYPE_TEXT, content: '12.0', align: LineText.ALIGN_LEFT, x: 500, relativeX: 0, linefeed: 1));
+
+                        list.add(LineText(type: LineText.TYPE_TEXT, content: '**********************************************', weight: 1, align: LineText.ALIGN_CENTER,linefeed: 1));
+                        list.add(LineText(linefeed: 1));
+
+                        ByteData data = await rootBundle.load("assets/images/bluetooth_print.png");
+                        List<int> imageBytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+                        String base64Image = base64Encode(imageBytes);
+                        // list.add(LineText(type: LineText.TYPE_IMAGE, content: base64Image, align: LineText.ALIGN_CENTER, linefeed: 1));
+
+                        await bluetoothPrint.printReceipt(config, list);
+                      }:null,
+                      child: const Text('print receipt(esc)'),
+                    ),
+                    OutlinedButton(
+                      onPressed:  _connected?() async {
+                        Map<String, dynamic> config = Map();
+                        config['width'] = 40;
+                        config['height'] = 70;
+                        config['gap'] = 2;
+
+                        List<LineText> list = [];
+                        list.add(LineText(type: LineText.TYPE_TEXT, x:10, y:10, content: 'A Title'));
+                        list.add(LineText(type: LineText.TYPE_TEXT, x:10, y:40, content: 'this is content'));
+                        list.add(LineText(type: LineText.TYPE_QRCODE, x:10, y:70, content: 'qrcode i\n'));
+                        list.add(LineText(type: LineText.TYPE_BARCODE, x:10, y:190, content: 'qrcode i\n'));
+
+                        List<LineText> list1 = [];
+                        ByteData data = await rootBundle.load("assets/images/guide3.png");
+                        List<int> imageBytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+                        String base64Image = base64Encode(imageBytes);
+                        list1.add(LineText(type: LineText.TYPE_IMAGE, x:10, y:10, content: base64Image,));
+
+                        await bluetoothPrint.printLabel(config, list);
+                        await bluetoothPrint.printLabel(config, list1);
+                      }:null,
+                      child: const Text('print label(tsc)'),
+                    ),
+                    OutlinedButton(
+                      onPressed:  _connected?() async {
+                        await bluetoothPrint.printTest();
+                      }:null,
+                      child: const Text('print selftest'),
+                    )
+                  ],
                 ),
-                child: Row(children: [
-                  GestureDetector(onTap: () {Navigator.of(context).pop();}, child: Container(padding: const EdgeInsets.all(16), height: 50, width: 50, child: Icon(MdiIcons.chevronLeft))),
-                  Expanded(child: Container(padding: const EdgeInsets.only(left: 20, right: 20), child: Center(child: Text("Scan Devices", style: TextStyle(fontSize: 20, fontFamily: AppAssets.nunitoMedium), maxLines: 1, overflow: TextOverflow.ellipsis,)))),
-                  Container(padding: const EdgeInsets.all(10), height: 50, width: 50,),
-                ],),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: StreamBuilder<List<BluetoothDevice>>(
-                    stream: bluetoothPrint.scanResults,
-                    initialData: [],
-                    builder: (c, snapshot) {
-                      print("_______: ${snapshot.data!}");
-                      return Column(
-                        children: snapshot.data!.map((d) =>
-                            Container(
-                              margin: const EdgeInsets.only(top: 10),
-                              decoration: BoxDecoration(
-                                color: AppAssets.whiteColor,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [BoxShadow(
-                                  color: AppAssets.textNormalGrayColor.withOpacity(0.05),
-                                  spreadRadius: 6,
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 3), // changes position of shadow
-                                )],
-                              ),
-                              child: ListTile(
-                                title: Text(d.name ?? ''),
-                                subtitle: Text(d.address ?? ''),
-                                onTap: () async {
-                                  setState(() {
-                                    _device = d;
-                                  });
-                                  await bluetoothPrint.connect(_device);
-                                },
-                                trailing: _device != null &&
-                                    _device.address == d.address ? const Icon(
-                                  Icons.check,
-                                  color: Colors.green,
-                                ) : null,
-                              ),
-                            )).toList(),
-                      );
-                    }),
-                ),
-              ),
+              )
             ],
           ),
         ),
+      ),
+      floatingActionButton: StreamBuilder<bool>(
+        stream: bluetoothPrint.isScanning,
+        initialData: false,
+        builder: (c, snapshot) {
+          if (snapshot.data == true) {
+            return FloatingActionButton(
+              onPressed: () => bluetoothPrint.stopScan(),
+              backgroundColor: Colors.red,
+              child: const Icon(Icons.stop),
+            );
+          } else {
+            return FloatingActionButton(
+                child: const Icon(Icons.search),
+                onPressed: () => bluetoothPrint.startScan(timeout: const Duration(seconds: 10)));
+          }
+        },
       ),
     );
   }
