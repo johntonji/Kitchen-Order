@@ -1,7 +1,12 @@
 class IPConfigurations{
   //Server Address
-  static String serverIp = "https://fooduat.eatsbee.com/backoffice/apibackendmobile";
-  static String serverImagePath = "https://fooduat.eatsbee.com/backoffice";
+  //Staging API
+  //static String serverIp = "https://fooduat.eatsbee.com/backoffice/apibackendmobile";
+  //static String serverImagePath = "https://fooduat.eatsbee.com/backoffice";
+
+  //Production API
+  static String serverIp = "https://food.eatsbee.com/backoffice/apibackendmobile";
+  static String serverImagePath = "https://food.eatsbee.com/backoffice";
 
   //Server APIs
   static String userLogin = "$serverIp/login"; //POST
