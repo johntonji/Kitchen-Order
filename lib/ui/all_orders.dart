@@ -689,7 +689,7 @@ class _AllOrdersState extends State<AllOrders> {
                                         color: AppAssets.purpleColor,
                                         borderRadius: BorderRadius.circular(10),
                                       ),
-                                      child: Center(child: Text("READY FOR PICKUP", style: TextStyle(fontSize: 12, fontFamily: AppAssets.nunitoBold, color: AppAssets.whiteColor), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                      child: Center(child: Text("READY FOR PICKUP ..", style: TextStyle(fontSize: 12, fontFamily: AppAssets.nunitoBold, color: AppAssets.whiteColor), maxLines: 1, overflow: TextOverflow.ellipsis,)),
                                     ),
                                   ),
                                 ],

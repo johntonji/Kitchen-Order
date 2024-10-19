@@ -3,7 +3,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:order_receiving/models/order_model.dart';
 import 'package:order_receiving/ui/order_printing/pdfexport.dart';
-import 'package:printing/printing.dart';
+//import 'package:printing/printing.dart';
 
 import '../../assets/app_assets.dart';
 
@@ -42,18 +42,18 @@ class _OrderPrintingState extends State<OrderPrinting> {
                 ),
                 child: Row(children: [
                   GestureDetector(onTap: () {Navigator.of(context).pop();}, child: Container(padding: const EdgeInsets.all(16), height: 50, width: 50, child: Icon(MdiIcons.chevronLeft))),
-                  Expanded(child: Container(padding: const EdgeInsets.only(left: 20, right: 20), child: Center(child: Text("Order Receipt", style: TextStyle(fontSize: 20, fontFamily: AppAssets.nunitoMedium), maxLines: 1, overflow: TextOverflow.ellipsis,)))),
+                  Expanded(child: Container(padding: const EdgeInsets.only(left: 20, right: 20), child: Center(child: Text("Order Receipt ...", style: TextStyle(fontSize: 20, fontFamily: AppAssets.nunitoMedium), maxLines: 1, overflow: TextOverflow.ellipsis,)))),
                   Container(padding: const EdgeInsets.all(10), height: 50, width: 50,),
                 ],),
               ),
-              Expanded(
-                child: PdfPreview(
+              /*Expanded(
+                child:() PdfPreview(
                   canChangeOrientation: true,
                   canDebug: false,
                   padding: const EdgeInsets.only(top: 100),
                   build: (context) => makePdf(widget.orderModel),
                 ),
-              ),
+              ),*/
             ],
           ),
         ),

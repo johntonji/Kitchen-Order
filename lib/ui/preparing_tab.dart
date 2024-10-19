@@ -313,8 +313,8 @@ class _PreparingTabState extends State<PreparingTab> {
                           children: [
                             GestureDetector(
                               onTap: () {
-                                Navigator.of(context).push(MaterialPageRoute(builder: (context) => OrderPrinting(orderModel: order)));
-                                return;
+                                //Navigator.of(context).push(MaterialPageRoute(builder: (context) => OrderPrinting(orderModel: order)));
+                                //return;
 
                                 UtilityClass.showLoadingDialog(context);
                                 provider.readyForPickupOrder(userModel.authToken!, order.orderData!.orderUuid!).then((status) {
@@ -334,7 +334,7 @@ class _PreparingTabState extends State<PreparingTab> {
                                   color: AppAssets.purpleColor,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: Center(child: Text("READY FOR PICKUP", style: TextStyle(fontSize: 12, fontFamily: AppAssets.nunitoBold, color: AppAssets.whiteColor), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                child: Center(child: Text("READY FOR PICKU ..", style: TextStyle(fontSize: 12, fontFamily: AppAssets.nunitoBold, color: AppAssets.whiteColor), maxLines: 1, overflow: TextOverflow.ellipsis,)),
                               ),
                             ),
                           ],

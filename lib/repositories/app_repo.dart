@@ -4,6 +4,7 @@ import 'package:http/http.dart';
 
 import '../utilities/base/api_response.dart';
 import '../utilities/ip_configurations.dart';
+//import 'dart:developer';
 
 class AppRepo{
 
@@ -11,6 +12,8 @@ class AppRepo{
   Future<ApiResponse> userLogin(String username, String password)async{
     ApiResponse apiResponse;
 
+    //var call=IPConfigurations.serverIp;
+    //log('serverIp: $call');
     var data = jsonEncode({"username":username,"password":password});
 
     var response = await http.post(Uri.parse(IPConfigurations.userLogin),
@@ -19,6 +22,9 @@ class AppRepo{
         }*/
         body: data
     );
+
+    //log("Index number is: ");
+    
     if(response.body.isNotEmpty){
       apiResponse = ApiResponse(response,null,null);
       return apiResponse;
@@ -53,10 +59,13 @@ class AppRepo{
     var response = await http.get(Uri.parse(IPConfigurations.getProcessingOrders),
         headers: {
           'Authorization': 'Bearer $token',
+          'Content-Type':'application/json'
         }
     );
     if(response.body.isNotEmpty){
       apiResponse = ApiResponse(response,null,null);
+      //serverIp
+      
       return apiResponse;
     }else{
       apiResponse = ApiResponse.withError("Error");
@@ -95,9 +104,15 @@ class AppRepo{
     var response = await http.post(Uri.parse(IPConfigurations.acceptOrders),
         headers: {
           'Authorization': 'Bearer $token',
+          'Content-Type':'application/json'
         },
         body: data
     );
+
+    //print("Index Respo Data: "+data.toString());
+    //print("Index Respo: "+response.body.toString());
+    //var api=ApiResponse(response,null,null);
+    //print("Index Respo V2: "+api.toString());
     if(response.body.isNotEmpty){
       apiResponse = ApiResponse(response,null,null);
       return apiResponse;
@@ -144,9 +159,12 @@ class AppRepo{
     var response = await http.post(Uri.parse(IPConfigurations.readyForPickupOrders),
         headers: {
           'Authorization': 'Bearer $token',
+          'Content-Type':'application/json'
         },
         body: data
     );
+    //print('Ready'+response.toString());
+    //log("Index number is: ");
     if(response.body.isNotEmpty){
       apiResponse = ApiResponse(response,null,null);
       return apiResponse;
