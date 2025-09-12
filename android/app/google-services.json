@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "613239924389",
+    "project_id": "eatsbeeorderreceiving",
+    "storage_bucket": "eatsbeeorderreceiving.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:613239924389:android:d6de0e34e65a42c4bc8f4c",
+        "android_client_info": {
+          "package_name": "com.eatsbee.order_receiving"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPveYvd0YxC-sft0OIRcRNXan7yV24I_4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
