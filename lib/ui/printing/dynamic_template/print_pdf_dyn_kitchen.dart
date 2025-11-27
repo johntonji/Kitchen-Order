@@ -91,7 +91,8 @@ Future<String> dynKitchenPdfGenerate(
           pw.Expanded(child: 
           pw.Text("Exp. ${orderModal.orderData.serviceCode.firstToUpper()}:", style: pw.TextStyle( fontWeight: pw.FontWeight.bold, fontSize: headerModel.fulfillmentSize?.toDouble()))),
           pw.Text( (orderModal.orderData.whentoDeliver == "schedule") 
-                 ? "${formatDate(orderModal.orderData.deliveryDate)} at ${orderModal.orderData.deliveryTime}"
+                 ? "${formatDate(orderModal.orderData.deliveryDate)} "
+                //  at ${orderModal.orderData.deliveryTime}"
                :  (orderModal.orderData.deliveryTime.trim()!="") 
                 ? addMinutesToTime(orderModal.orderData.acceptedAt!, timeToMinutes(orderModal.orderData.deliveryTime))
                 :  "",
@@ -204,7 +205,8 @@ Future<String> dynKitchenPdfGenerate(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                       if(addons.subcategoryName!=null && addons.subcategoryName!="")
-                                          pw.Text('${addons.subcategoryName}:',
+                                       if(kitchenItemsModel.showAddonNames==true)
+                                          pw.Text('- ${addons.subcategoryName}:',
                                             style: pw.TextStyle(
                                                 fontSize: kitchenItemsModel.choicAddonSize!
                                                     .toDouble(),
@@ -217,7 +219,9 @@ Future<String> dynKitchenPdfGenerate(
                                      
                                    final itemAddonItem = addons.addonItems![i];
                                    return  pw.Row(children: [
-                                    pw.Text("  * "),
+                                    (!itemAddonItem.subItemName!.contains(":"))
+                                    ? Text("  * ")
+                                    : Text(" "),
                                       // if (kitchenItemsModel.showAddonNames == true)
                                       
                                         // pw.Text('${addons.subcategoryName}:',
@@ -231,7 +235,7 @@ Future<String> dynKitchenPdfGenerate(
                                          itemAddonItem.subItemName!,
                                           style: pw.TextStyle(
                                               fontSize: kitchenItemsModel
-                                                  .choicAddonSize!
+                                                  .itemCommentSize!
                                                   .toDouble(),
                                               fontItalic: Font.timesItalic())),
                                     ]);

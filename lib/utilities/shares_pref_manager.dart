@@ -305,9 +305,10 @@ Future<void> addToProcessedOrderList(OrderModel newOrder) async {
   }
 }
 
-Future<void> printListsValues()async{
-  List<String> idList1=[];
-  List<String> idList2=[];
+/////prev to print both list data
+Future<void> printListsValues() async {
+  List<String> idList1 = []; // processedOrderList
+  List<String> idList2 = []; // newOrderList
     final prefs = await SharedPreferences.getInstance();
   String? jsonString = prefs.getString('processedOrderList');
    if (jsonString != null) {
@@ -329,7 +330,18 @@ Future<void> printListsValues()async{
    for(OrderModel o in m){
     idList2.add(o.orderData.orderId);
    }
-    print("[sharedPref] newOrderList is $idList2");
+    print("[sharedPref] newOrderList before filter is $idList2");
+
+    // Remove overlapping items
+    idList2.removeWhere((id) => idList1.contains(id));
+
+    print("[sharedPref] newOrderList after filter is $idList2");
+
+    //  Save the filtered newOrderList back to SharedPreferences
+    List<OrderModel> filteredList =
+        m.where((o) => !idList1.contains(o.orderData.orderId)).toList();
+    String updatedJson = jsonEncode(filteredList.map((o) => o.toJson()).toList());
+    await prefs.setString('newOrderList', updatedJson);
   }
 }
 

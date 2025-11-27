@@ -137,37 +137,43 @@ Future<String> demoKitchenPdfGenerate(
 
               ],
               ),
+              if(kitchenItemsModel.showAddonNames==true)
+                      pw.Text('- Size:',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
                  pw.Row(
                   children: [
-                    if(kitchenItemsModel.showAddonNames==true)
-                      pw.Text('Size:',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
-                      pw.Text('Small',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
+                    // if(kitchenItemsModel.showAddonNames==true)
+                    //   pw.Text('Size:',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
+                      pw.Text(' * Small',style: pw.TextStyle(fontSize: kitchenItemsModel.itemCommentSize!.toDouble(),fontItalic: Font.timesItalic())),
                   ]
                  ),
+                 if(kitchenItemsModel.showAddonNames==true)
+               pw.Text('- Crust:',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
                  pw.Row(
                   children: [
-                    if(kitchenItemsModel.showAddonNames==true)
-               pw.Text('Crust:',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
-              pw.Text('Fluffy',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
+              //       if(kitchenItemsModel.showAddonNames==true)
+              //  pw.Text('Crust:',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
+              pw.Text(' * Fluffy',style: pw.TextStyle(fontSize: kitchenItemsModel.itemCommentSize!.toDouble(),fontItalic: Font.timesItalic())),
                   ]
                  ),
+                 if(kitchenItemsModel.showAddonNames==true)
+                      pw.Text('- Toppings:',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
                      pw.Row(
                       children: [
-                         if(kitchenItemsModel.showAddonNames==true)
-                      pw.Text('Toppings:',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
-                      pw.Text('Extra mozzarella ',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
+                      //    if(kitchenItemsModel.showAddonNames==true)
+                      // pw.Text('Toppings:',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
+                      pw.Text(' * Extra mozzarella ',style: pw.TextStyle(fontSize: kitchenItemsModel.itemCommentSize!.toDouble(),fontItalic: Font.timesItalic())),
                       
                     ]
                   ),
                 
-                  pw.Row(
-                children: [
-                   if (commentImage != null) pw.Image(commentImage, width: 10, height: 10), 
-                   pw.SizedBox(width: 5),
-               pw.Text('No mushrooms, please!', style: pw.TextStyle(fontWeight: pw.FontWeight.bold,fontSize: kitchenItemsModel.itemCommentSize!.toDouble())),
+              //     pw.Row(
+              //   children: [
+              //      if (commentImage != null) pw.Image(commentImage, width: 10, height: 10), 
+              //      pw.SizedBox(width: 5),
+              //  pw.Text('No mushrooms, please!', style: pw.TextStyle(fontWeight: pw.FontWeight.bold,fontSize: kitchenItemsModel.itemCommentSize!.toDouble())),
                
-                ]
-               ),
+              //   ]
+              //  ),
               ]
             ),
               
@@ -183,20 +189,24 @@ Future<String> demoKitchenPdfGenerate(
 
                 ],
               ),    
+              if(kitchenItemsModel.showAddonNames==true)
+                      pw.Text('- Size:',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
                 pw.Row(
                   children: [
-                       Text(" - "),
-                    if(kitchenItemsModel.showAddonNames==true)
-                      pw.Text('Size:',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
-                      pw.Text('Small',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
+                      //  Text(" - "),
+                    // if(kitchenItemsModel.showAddonNames==true)
+                    //   pw.Text('Size:',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
+                      pw.Text(' * Small',style: pw.TextStyle(fontSize: kitchenItemsModel.itemCommentSize!.toDouble(),fontItalic: Font.timesItalic())),
                     ]
                  ),
+                   if(kitchenItemsModel.showAddonNames==true)
+               pw.Text('- Crust:',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
                  pw.Row(
                   children: [
-                       Text(" - "),
-                    if(kitchenItemsModel.showAddonNames==true)
-               pw.Text('Crust:',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
-              pw.Text((kitchenItemsModel.showInternalNames==true) ?'Crispy internal name' :'Crispy',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
+                      //  Text(" - "),
+              //       if(kitchenItemsModel.showAddonNames==true)
+              //  pw.Text('Crust:',style: pw.TextStyle(fontSize: kitchenItemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
+              pw.Text(' * Crispy',style: pw.TextStyle(fontSize: kitchenItemsModel.itemCommentSize!.toDouble(),fontItalic: Font.timesItalic())),
                   ]
                  ),
           

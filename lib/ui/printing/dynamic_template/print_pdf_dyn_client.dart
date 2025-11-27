@@ -114,15 +114,19 @@ int timeToMinutes(String time) {
 
 
 String formatAddress(String address) {
-  List<String> parts = address.split(', ');
+  List<String> parts = address.split(', ').map((p) => p.trim()).toList();
 
-  if (parts.length < 3) return address; // Return as-is if it's too short
+  if (parts.length < 3) return address; // Return as-is if too short
+
+  // Always remove the last part (assumed to be country)
+  parts.removeLast();
 
   String line1 = parts.take(2).join(', '); 
   String line2 = parts.skip(2).take(2).join(', '); 
   String line3 = parts.skip(4).join(', ');
 
-  return "$line1\n$line2\n$line3";
+  // Remove empty lines if any
+  return [line1, line2, line3].where((line) => line.isNotEmpty).join('\n');
 }
 
 String PlaceName(String address) {
@@ -131,6 +135,17 @@ String PlaceName(String address) {
   String line1 = parts.take(2).join(', '); 
   return "$line1";
 }
+String removeCountry(String address) {
+  List<String> parts = address.split(', ').map((p) => p.trim()).toList();
+
+  if (parts.length <= 1) return address; // nothing to remove
+
+  // Remove last part (assumed to be country)
+  parts.removeLast();
+
+  return parts.join(', ');
+}
+
 
 
 String getLastTwoDigits(String input) {
@@ -241,7 +256,7 @@ Future<String> dynClientPdfGenerate(
                                     contactDetailsModel.addressSize!.toDouble())),
                     pw.Text(
                         textAlign: TextAlign.center,
-                         (userModel.contactNumber!=null || userModel.contactNumber!="") ?"Phone : ${userModel.contactNumber}": "",
+                         (userModel.contactNumber!=null || userModel.contactNumber!="") ?" ${userModel.contactNumber}": "",
                             style: pw.TextStyle(
                                 fontSize:
                                     contactDetailsModel.phoneSize!.toDouble())),
@@ -342,7 +357,8 @@ Future<String> dynClientPdfGenerate(
                             (orderModal.orderData.whentoDeliver == "now")
                                 ? (orderModal.orderData.deliveryTime!="") ?"now (${timeToMinutes(orderModal.orderData.deliveryTime)} min)" :""
                                 :  (orderModal.orderData.whentoDeliver == "schedule") 
-                                 ? "Later(${formatDate(orderModal.orderData.deliveryDate)} at ${orderModal.orderData.deliveryTime})"
+                                 ? "Later(${formatDate(orderModal.orderData.deliveryDate)} )"
+                                //  at ${orderModal.orderData.deliveryTime})"
                                  : "Later (${addMinutesToTime(orderModal.orderData.acceptedAt!,timeToMinutes(orderModal.orderData.deliveryTime))})",
                                  style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
@@ -374,7 +390,7 @@ Future<String> dynClientPdfGenerate(
                if(orderModal.orderData.serviceCode=="delivery" && orderModal.orderData.formattedAddress!="")
                  Row(
                   children: [
-                    Expanded(child: pw.Text(orderModal.orderData.formattedAddress ,style: pw.TextStyle(fontSize: directionModel.addressSize!.toDouble())),
+                    Expanded(child: pw.Text(removeCountry(orderModal.orderData.formattedAddress) ,style: pw.TextStyle(fontSize: directionModel.addressSize!.toDouble())),
                     ) ]
                     ),
                    SizedBox(height: 3),
@@ -526,7 +542,7 @@ Future<String> dynClientPdfGenerate(
                                             fontSize: itemsModel.itemsSize!
                                                 .toDouble())),
                                     pw.Text(
-                                        '\$${formatToTwoDecimals(orderModal.items[index].price.price)}',
+                                        '\$${formatToTwoDecimals(orderModal.items[index].price.total)}',
                                         style: pw.TextStyle(
                                             fontSize: itemsModel.itemsSize!
                                                 .toDouble())),
@@ -550,6 +566,7 @@ Future<String> dynClientPdfGenerate(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                       if(addons.subcategoryName!=null && addons.subcategoryName!="")
+                                       if(itemsModel.showAddonNames==true)
                                        pw.Text('- ${addons.subcategoryName}',
                                             style: pw.TextStyle(
                                                 fontSize: itemsModel
@@ -563,7 +580,9 @@ Future<String> dynClientPdfGenerate(
                                               .length, (i) {
                                    final itemAddonItem = addons.addonItems![i];
                                    return  pw.Row(children: [
-                                    Text("  * "),
+                                    (!itemAddonItem.subItemName!.contains(":"))
+                                    ? Text("  * ")
+                                    : Text(" "),
                                       // if (itemsModel.showAddonNames == true)
                                         // pw.Text('${addons.subcategoryName}:',
                                         //     style: pw.TextStyle(
@@ -576,7 +595,7 @@ Future<String> dynClientPdfGenerate(
                                           itemAddonItem.subItemName!,
                                           style: pw.TextStyle(
                                               fontSize: itemsModel
-                                                  .choicAddonSize!
+                                                  .itemCommentSize!
                                                   .toDouble(),
                                               fontItalic: Font.timesItalic())),
                                       if (itemAddonItem.price != null)
@@ -588,7 +607,7 @@ Future<String> dynClientPdfGenerate(
                                                   '\$${formatToTwoDecimals(itemAddonItem.price!.toDouble())}',
                                                   style: pw.TextStyle(
                                                       fontSize: itemsModel
-                                                          .choicAddonSize!
+                                                          .itemCommentSize!
                                                           .toDouble(),
                                                       fontItalic:
                                                           Font.timesItalic()))
@@ -596,7 +615,7 @@ Future<String> dynClientPdfGenerate(
                                                   '\$${formatToTwoDecimals(itemAddonItem.price!.toDouble())}',
                                                   style: pw.TextStyle(
                                                       fontSize: itemsModel
-                                                          .choicAddonSize!
+                                                          .itemCommentSize!
                                                           .toDouble(),
                                                       fontItalic:
                                                           Font.timesItalic()))
@@ -609,26 +628,27 @@ Future<String> dynClientPdfGenerate(
                                     );
                                     })
                                   ),
-                                   if (orderModal
-                                            .items[index].specialInstructions !=
-                                        null &&
-                                    orderModal
-                                            .items[index].specialInstructions !=
-                                        "")
-                                  pw.Row(
-                                    children: [
-                                      pw.Image(commentImage, width: 10, height: 10),
-                                      pw.SizedBox(width: 5),
-                                      pw.Text(
-                                          orderModal.items[index]
-                                              .specialInstructions!,
-                                          style: pw.TextStyle(
-                                              fontWeight: pw.FontWeight.bold,
-                                              fontSize: itemsModel
-                                                  .itemCommentSize!
-                                                  .toDouble())),
-                                    ],
-                                  ),
+                              
+                                  //  if (orderModal
+                                  //           .items[index].specialInstructions !=
+                                  //       null &&
+                                  //   orderModal
+                                  //           .items[index].specialInstructions !=
+                                  //       "")
+                                  // pw.Row(
+                                  //   children: [
+                                  //     pw.Image(commentImage, width: 10, height: 10),
+                                  //     pw.SizedBox(width: 5),
+                                  //     pw.Text(
+                                  //         orderModal.items[index]
+                                  //             .specialInstructions!,
+                                  //         style: pw.TextStyle(
+                                  //             fontWeight: pw.FontWeight.bold,
+                                  //             fontSize: itemsModel
+                                  //                 .itemCommentSize!
+                                  //                 .toDouble())),
+                                  //   ],
+                                  // ),
                               ]);
                         })),
                         pw.SizedBox(height: 10),
@@ -645,19 +665,41 @@ Future<String> dynClientPdfGenerate(
                                     fontSize: itemsModel.feesSize!.toDouble())),
                             ],
                          ),
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        //  if(orderModal.orderData.discountAmount!=null && orderModal.orderData.discountAmount!>0)
+                      if(orderModal.allTaxesUse.isNotEmpty && orderModal.allTaxesUse !=null)
+                       pw.ListView(
+                        
+                        //  itemCount: order.allTaxesUse.length,
+                        children: List.generate(orderModal.allTaxesUse.length,(index){
+                          final taxItem=orderModal.allTaxesUse[index];
+                           return Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Text( 
-                              // (orderModal.orderData.taxType!=null) ?'${orderModal.orderData.taxType!} tax':
-                              "Tax",
-                                style: pw.TextStyle(
-                                    fontSize: itemsModel.feesSize!.toDouble())),
-                            pw.Text((orderModal.orderData.taxTotal!=null) ?'\$ ${double.parse(orderModal.orderData.taxTotal.toString()).toStringAsFixed(2)}' : '\$ 0.00',
-                                style: pw.TextStyle(
-                                    fontSize: itemsModel.feesSize!.toDouble())),
-                          ],
-                        ),
+                               Text( 
+                                // (order.orderData.taxType!=null) ?'${order.orderData.taxType!} tax':
+                                  (taxItem.taxName!.isNotEmpty) 
+                                  ? taxItem.taxName!
+                                  : "Tax",
+                                   style: pw.TextStyle( fontSize: itemsModel.feesSize!.toDouble()),),
+                                   pw.Text((taxItem.taxRateCalculated!=null) ?'\$ ${double.parse(taxItem.taxRateCalculated!.toString()).toStringAsFixed(2)}' : '\$ 0.00',
+                                   style: TextStyle(fontSize: itemsModel.feesSize!.toDouble()), ),
+                              ],
+                            );
+                         })
+                       ),
+                        // pw.Row(
+                        //   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        //   children: [
+                        //     pw.Text( 
+                        //       // (orderModal.orderData.taxType!=null) ?'${orderModal.orderData.taxType!} tax':
+                        //       "Tax",
+                        //         style: pw.TextStyle(
+                        //             fontSize: itemsModel.feesSize!.toDouble())),
+                        //     pw.Text((orderModal.orderData.taxTotal!=null) ?'\$ ${double.parse(orderModal.orderData.taxTotal.toString()).toStringAsFixed(2)}' : '\$ 0.00',
+                        //         style: pw.TextStyle(
+                        //             fontSize: itemsModel.feesSize!.toDouble())),
+                        //   ],
+                        // ),
                           pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
@@ -745,7 +787,7 @@ Future<String> dynClientPdfGenerate(
                      
                         // if(orderModal.customer.cardType==null || orderModal.customer.cardType=="" )
                         pw.Text(
-                            'I acknowledge reception of order ID ${orderModal.orderData.orderId} from ${PlaceName(orderModal.restaurantAddress ?? "")} on ${formatDateTime(orderModal.orderData.dateCreated ?? "")}.',
+                            'I acknowledge reception of order ID ${orderModal.orderData.orderId} from ${PlaceName(userModel.address ?? "")} on ${formatDateTime(orderModal.orderData.dateCreated ?? "")}.',
                             style: pw.TextStyle(
                                 fontSize: clientConfirmationModel.textSize!
                                     .toDouble())),

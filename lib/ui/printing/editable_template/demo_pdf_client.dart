@@ -107,7 +107,7 @@ Future<String> demoClientPdfGenerate(
                                     contactDetailsModel.addressSize!.toDouble())),
                     pw.Text(
                         textAlign: TextAlign.center,
-                         (phone!=null || phone!="") ?"Phone : $phone": "",
+                         (phone!=null || phone!="") ?"$phone": "",
                             style: pw.TextStyle(
                                 fontSize:
                                     contactDetailsModel.phoneSize!.toDouble())),
@@ -325,39 +325,44 @@ Future<String> demoClientPdfGenerate(
 
                 ],
               ),
+               if(itemsModel.showAddonNames==true)
+                      pw.Text('- Size:',style: pw.TextStyle(fontSize: itemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
                  pw.Row(
                   children: [
-                       Text(" - "),
-                    if(itemsModel.showAddonNames==true)
-                      pw.Text('Size:',style: pw.TextStyle(fontSize: itemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
-                      pw.Text('Small',style: pw.TextStyle(fontSize: itemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
+                      //  Text(" - "),
+                    // if(itemsModel.showAddonNames==true)
+                    //   pw.Text('- Size:',style: pw.TextStyle(fontSize: itemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
+                       pw.Text(' * Small',style: pw.TextStyle(fontSize: itemsModel.itemCommentSize!.toDouble(),fontItalic: Font.timesItalic())),
                  Spacer(),
                       if(itemsModel.showAddonFees==true)
-                      pw.Text('\$0.00',style: pw.TextStyle(fontSize: itemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic()))
+                      pw.Text('\$0.00',style: pw.TextStyle(fontSize: itemsModel.itemCommentSize!.toDouble(),fontItalic: Font.timesItalic()))
                    
                   ]
                  ),
+               if(itemsModel.showAddonNames==true)
+               pw.Text('- Crust:',style: pw.TextStyle(fontSize: itemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
                  pw.Row(
                   children: [
-                       Text(" - "),
-                    if(itemsModel.showAddonNames==true)
-               pw.Text('Crust:',style: pw.TextStyle(fontSize: itemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
-              pw.Text('Fluffy',style: pw.TextStyle(fontSize: itemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
+                  //  Text(" - "),
+                  //  if(itemsModel.showAddonNames==true)
+                  //  pw.Text('Crust:',style: pw.TextStyle(fontSize: itemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
+                  pw.Text(' * Fluffy',style: pw.TextStyle(fontSize: itemsModel.itemCommentSize!.toDouble(),fontItalic: Font.timesItalic())),
                   Spacer(),
                       if(itemsModel.showAddonFees==true)
-                      pw.Text('\$0.00',style: pw.TextStyle(fontSize: itemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic()))
-                   
+                      pw.Text('\$0.00',style: pw.TextStyle(fontSize: itemsModel.itemCommentSize!.toDouble(),fontItalic: Font.timesItalic()))
                   ]
                  ),
+                 if(itemsModel.showAddonNames==true)
+                      pw.Text('- Toppings:',style: pw.TextStyle(fontSize: itemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
                      pw.Row(
                       children: [
-                           Text(" - "),
-                         if(itemsModel.showAddonNames==true)
-                      pw.Text('Toppings:',style: pw.TextStyle(fontSize: itemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
-                      pw.Text('Extra mozzarella ',style: pw.TextStyle(fontSize: itemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
+                          //  Text(" - "),
+                      //    if(itemsModel.showAddonNames==true)
+                      // pw.Text('Toppings:',style: pw.TextStyle(fontSize: itemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic())),
+                      pw.Text(' * Extra mozzarella ',style: pw.TextStyle(fontSize: itemsModel.itemCommentSize!.toDouble(),fontItalic: Font.timesItalic())),
                       Spacer(),
                       if(itemsModel.showAddonFees==true)
-                      pw.Text('\$1.50',style: pw.TextStyle(fontSize: itemsModel.choicAddonSize!.toDouble(),fontItalic: Font.timesItalic()))
+                      pw.Text('\$1.50',style: pw.TextStyle(fontSize: itemsModel.itemCommentSize!.toDouble(),fontItalic: Font.timesItalic()))
                    
                     ]
                   ),

@@ -29,9 +29,9 @@ class _ReceiptTemplatesState extends State<ReceiptTemplates> {
     receiptTemplateList =
         await SharedPreferenceManager.getInstance().getReceiptTemplateList();
     debugPrint("list of receipts is $receiptTemplateList");
-    var receiptData = await SharedPreferenceManager.getInstance()
-        .getReceiptData(receiptTemplateList[0]);
-    debugPrint("receipt data is $receiptData");
+    // var receiptData = await SharedPreferenceManager.getInstance()
+    //     .getReceiptData(receiptTemplateList[0]);
+    // debugPrint("receipt data is $receiptData");
 
   }
 
@@ -58,17 +58,22 @@ class _ReceiptTemplatesState extends State<ReceiptTemplates> {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  FutureBuilder(
-                   future:  SharedPreferenceManager.getInstance().getReceiptData("MerchantReceipt"),
-                    builder: (context, recieptSnapshot) {
-                      return IconButton(onPressed: () {
+                  // FutureBuilder(
+                  //  future:  SharedPreferenceManager.getInstance().getReceiptData("MerchantReceipt"),
+                  //   builder: (context, recieptSnapshot) {
+                  //     return
+                       IconButton(onPressed: () {
+                        SharedPreferenceManager.getInstance().getReceiptData("MerchantReceipt").then((receiptData){
                        Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => RecieptComponentsClient( recieptDataMap:recieptSnapshot.data!, address: widget.address, logo: widget.logo, phone: widget.phone,)));     
-                      }, icon: Icon(Icons.edit));
-                    }, 
-                  ),
+                            builder: (context) => RecieptComponentsClient(
+                               recieptDataMap:receiptData!,
+                                address: widget.address, logo: widget.logo, phone: widget.phone,)));
+                        });
+                      }, icon: Icon(Icons.edit))
+                  //   }, 
+                  // ),
                 ],
               ),
             ),
@@ -81,18 +86,22 @@ class _ReceiptTemplatesState extends State<ReceiptTemplates> {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  FutureBuilder(
-                   future:  SharedPreferenceManager.getInstance().getReceiptData("KitchenEssentials"),
-                    builder: (context, recieptSnapshot) {
-                      return IconButton(onPressed: () {
-                    debugPrint("kitchen data is ${recieptSnapshot.data}");
+                  // FutureBuilder(
+                  //  future:  SharedPreferenceManager.getInstance().getReceiptData("KitchenEssentials"),
+                  //   builder: (context, recieptSnapshot) {
+                  //     return 
+                      IconButton(onPressed: () {
+                    // debugPrint("kitchen data is ${recieptSnapshot.data}");
+                      SharedPreferenceManager.getInstance().getReceiptData("KitchenEssentials").then((receiptData){
                        Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => RecieptComponentsKitchen( recieptDataMap:recieptSnapshot.data!,)));
-                           }, icon: Icon(Icons.edit));
-                    }, 
-                  ),
+                            builder: (context) => RecieptComponentsKitchen( recieptDataMap:receiptData!,)));
+                      });
+                 
+                           }, icon: Icon(Icons.edit))
+                  //   }, 
+                  // ),
                 ],
               ),
             ),

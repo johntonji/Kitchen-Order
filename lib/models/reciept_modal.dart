@@ -87,11 +87,13 @@ class ItemsModel{
   bool? showAddonFees;
   bool? showAddonNames;
 
-  ItemsModel({ required this.titleSize,required this.itemsSize,required this.choicAddonSize,required this.itemCommentSize,required this.feesSize,required this.totalSize, required this.showAddonFees,required this.showAddonNames});
- static ItemsModel empty=ItemsModel(titleSize: 11, itemsSize: 9, choicAddonSize: 9, itemCommentSize: 9, feesSize: 9,totalSize:9, showAddonFees:true, showAddonNames: true);  
+  ItemsModel({ required this.titleSize,required this.itemsSize,required this.choicAddonSize,  required this.itemCommentSize,required this.feesSize,required this.totalSize, required this.showAddonFees,required this.showAddonNames});
+ static ItemsModel empty=ItemsModel(titleSize: 11, itemsSize: 9, choicAddonSize: 9,
+  itemCommentSize: 9, feesSize: 9,totalSize:9, showAddonFees:true, showAddonNames: true);  
 
     factory ItemsModel.fromJson(Map<String, dynamic> json) {
-      return ItemsModel(titleSize: json["titleSize"], itemsSize: json['itemsSize'], choicAddonSize: json['choicAddonSize'], itemCommentSize: json['itemCommentSize'], feesSize: json['feesSize'], totalSize: json['totalSize'], showAddonFees: json['showAddonFees'], showAddonNames: json['showAddonNames']);
+      return ItemsModel(titleSize: json["titleSize"], itemsSize: json['itemsSize'], choicAddonSize: json['choicAddonSize'],
+       itemCommentSize: json['itemCommentSize'], feesSize: json['feesSize'], totalSize: json['totalSize'], showAddonFees: json['showAddonFees'], showAddonNames: json['showAddonNames']);
     }
 
 }

@@ -451,17 +451,39 @@ void getWifiPrinters() {
                                   style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14),),
                             ],
                           ),
-                         Row(
+                                                if(order.allTaxesUse.isNotEmpty && order.allTaxesUse !=null)
+                       ListView.builder(
+                         shrinkWrap: true,
+                         physics: const NeverScrollableScrollPhysics(),
+                         itemCount: order.allTaxesUse.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          final taxItem=order.allTaxesUse[index];
+                           return Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                              Text(
                               // (order.orderData.taxType!=null) ?'${order.orderData.taxType!} tax':
-                              "Tax",
+                                  (taxItem.taxName!.isNotEmpty) 
+                                  ? taxItem.taxName!
+                                  : "Tax",
                                  style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14, color: AppAssets.widgetGrayColor),),
-                             Text((order.orderData.taxTotal!=null) ?'\$ ${double.parse(order.orderData.taxTotal.toString()).toStringAsFixed(2)}' : '\$ 0.00',
+                                   Text((taxItem.taxRateCalculated!=null) ?'\$ ${double.parse(taxItem.taxRateCalculated!.toString()).toStringAsFixed(2)}' : '\$ 0.00',
                                    style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14), ),
                             ],
-                          ),
+                            );
+                         }
+                       ),
+                        //  Row(
+                        //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        //     children: [
+                        //      Text(
+                        //       // (order.orderData.taxType!=null) ?'${order.orderData.taxType!} tax':
+                        //       "Tax",
+                        //          style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14, color: AppAssets.widgetGrayColor),),
+                        //      Text((order.orderData.taxTotal!=null) ?'\$ ${double.parse(order.orderData.taxTotal.toString()).toStringAsFixed(2)}' : '\$ 0.00',
+                        //            style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14), ),
+                        //     ],
+                        //   ),
                           Row(
                             children: [
                               Expanded(

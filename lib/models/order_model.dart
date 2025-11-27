@@ -124,6 +124,7 @@ class OrderModel {
   final Customer customer;
   String? restaurantAddress;
   String? orderCompletionTime;
+  List<AllTaxesUse> allTaxesUse;
 
   OrderModel({
     required this.orderData,
@@ -131,7 +132,8 @@ class OrderModel {
     required this.items,
     required this.customer,
     this.restaurantAddress,
-    this.orderCompletionTime
+    this.orderCompletionTime,
+    required this.allTaxesUse
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
@@ -141,7 +143,8 @@ class OrderModel {
       items: (json['items'] as List).map((i) => Items.fromJson(i)).toList(),
       customer: Customer.fromJson(json['customer']),
       restaurantAddress:json['restaurant_address'].toString() ,
-      orderCompletionTime:json['order_completion_time'].toString() 
+      orderCompletionTime:json['order_completion_time'].toString() ,
+      allTaxesUse: (json['all_taxes_use'] as List).map((i) => AllTaxesUse.fromJson(i)).toList(),
     );
   }
 
@@ -159,6 +162,9 @@ class OrderModel {
     }
     data["restaurant_address"]=restaurantAddress;
     data["order_completion_time"]=orderCompletionTime;
+    if(allTaxesUse != null){
+      data['all_taxes_use'] = allTaxesUse.map((v) => v.toJson()).toList();
+    }
     return data;
     
   }
@@ -752,6 +758,54 @@ class CardDetails {
     data['authCode'] = authCode;
     data['card'] = card;
     data['totalAmount'] = totalAmount;
+    return data;
+  }
+}
+
+
+/// New Modal
+
+class AllTaxesUse {
+  String? taxId;
+  String? taxName;
+  bool? taxInPrice;
+  String? taxRate;
+  String? taxRateType;
+  String? taxType;
+  String? taxAmountType;
+  double? taxRateCalculated;
+
+  AllTaxesUse(
+      {this.taxId,
+      this.taxName,
+      this.taxInPrice,
+      this.taxRate,
+      this.taxRateType,
+      this.taxType,
+      this.taxAmountType,
+      this.taxRateCalculated});
+
+  AllTaxesUse.fromJson(Map<String, dynamic> json) {
+    taxId = json['tax_id'];
+    taxName = json['tax_name'];
+    taxInPrice = json['tax_in_price'];
+    taxRate = json['tax_rate'];
+    taxRateType = json['tax_rate_type'];
+    taxType = json['tax_type'];
+    taxAmountType = json['tax_amount_type'];
+    taxRateCalculated = json['tax_rate_calculated'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data =  <String, dynamic>{};
+    data['tax_id'] = taxId;
+    data['tax_name'] = taxName;
+    data['tax_in_price'] = taxInPrice;
+    data['tax_rate'] = taxRate;
+    data['tax_rate_type'] = taxRateType;
+    data['tax_type'] = taxType;
+    data['tax_amount_type'] = taxAmountType;
+    data['tax_rate_calculated'] = taxRateCalculated;
     return data;
   }
 }

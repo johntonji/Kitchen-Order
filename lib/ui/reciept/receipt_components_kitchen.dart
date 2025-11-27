@@ -891,7 +891,7 @@ HeaderModel headerModel=HeaderModel.empty;
                             height: 10,
                           ),
                           ListTile(
-                            title: Text("Item Comment:"),
+                            title: Text("Subchoices:"),
                             trailing: Container(
                               decoration: BoxDecoration(
                                   border: Border.all(
@@ -1104,12 +1104,16 @@ HeaderModel headerModel=HeaderModel.empty;
                               ),
                             ),
                           ),
+                           SizedBox(
+                  height: 50,
+                )
                         ],
                       ),
                   ],
                 )
             ],
-          )),
+           )
+          ),
     );
   }
 

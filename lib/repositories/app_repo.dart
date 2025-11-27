@@ -15,7 +15,7 @@ class AppRepo{
     ApiResponse apiResponse;
     var data = jsonEncode({"username":username,"password":password});
 
-    var response = await http.post(Uri.parse("https://fooduat.eatsbee.com//backoffice/apibackendmobile/login"),
+    var response = await http.post(Uri.parse("https://food.eatsbee.com//backoffice/apibackendmobile/login"),
         /*headers: {
           'Authorization': 'Bearer ${userModel.authToken}',
         }*/
@@ -263,7 +263,7 @@ Future<ApiResponse> printerLogs(
 
   var request = http.MultipartRequest(
     'POST',
-    Uri.parse("https://fooduat.eatsbee.com/backoffice/apibackendmobile/print_logs_store"),
+    Uri.parse("https://food.eatsbee.com/backoffice/apibackendmobile/print_logs_store"),
   );
 
   // Add headers
@@ -355,7 +355,8 @@ Future<ApiResponse> updatePrinterLogs(
       "ip_address": printerModal.ipAddress
     });
 
-    var response = await http.post(Uri.parse("https://fooduat.eatsbee.com/backoffice/apibackendmobile/print_store"),
+
+    var response = await http.post(Uri.parse("https://food.eatsbee.com/backoffice/apibackendmobile/print_store"),
         headers: {
           'Authorization': 'Bearer $token',
         },
