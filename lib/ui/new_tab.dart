@@ -1011,7 +1011,7 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                                   TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: AppAssets.dimen_12, color: AppAssets.widgetGrayColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
                                 ],
                               ),
-                                      // Text("Accept the order in ${getRemainingTime(order.orderData.dateCreated!)} mins", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: AppAssets.dimen_12, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                      Text("Accept the order in ${getRemainingTime(order.orderData.dateCreated!)} mins", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: AppAssets.dimen_12, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
 
                             ],
                           )),
@@ -1077,7 +1077,7 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                                     
                                     ],
                                   ),
-                                      // Text("Accept the order in ${getRemainingTime(order.orderData.dateCreated!)} mins", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: AppAssets.dimen_12, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                      Text("Accept the order in ${getRemainingTime(order.orderData.dateCreated!)} mins", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: AppAssets.dimen_12, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
 
                                 ],
                               )),

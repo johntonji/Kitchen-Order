@@ -307,15 +307,15 @@ void getWifiPrinters() {
                             const SizedBox(width: 12,),
                             Row(
                               children: [
-                                //  (order.orderData.deliveryTime=="" ||order.orderData.deliveryTime ==null)
-                                //    ? 
+                                 (order.orderData.deliveryTime=="" ||order.orderData.deliveryTime ==null)
+                                   ? 
                                    Text(order.orderData.deliveryTime, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,)
 
-                                  //  : (getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)=="00 : 00")
-                                  //   ? Text("")
-                                  //   : Text(getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime), style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
-                                 ,  const SizedBox(width: 4,),
-                                // if (getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)!="00 : 00")
+                                   : (getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)=="00 : 00")
+                                    ? Text("")
+                                    : Text(getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime), style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                   const SizedBox(width: 4,),
+                                if (getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)!="00 : 00")
                                 SvgPicture.asset(AppAssets.timerIcon, colorFilter: ColorFilter.mode(AppAssets.redColor, BlendMode.srcIn), height: 16, width: 16,),
                               ],
                             ),
@@ -349,15 +349,15 @@ void getWifiPrinters() {
                                 const SizedBox(width: 12,),
                                 Row(
                                   children: [
-                                  // (order.orderData.deliveryTime=="" ||order.orderData.deliveryTime ==null)
-                                  //  ?
+                                  (order.orderData.deliveryTime=="" ||order.orderData.deliveryTime ==null)
+                                   ?
                                     Text(order.orderData.deliveryTime, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,)
 
-                                  // :(getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)=="00 : 00") 
-                                  //  ? Text("")
-                                  //  : Text(getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime), style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
-                                   , const SizedBox(width: 4,),
-                                    // if (getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)!="00 : 00")
+                                  :(getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)=="00 : 00") 
+                                   ? Text("")
+                                   : Text(getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime), style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                    const SizedBox(width: 4,),
+                                    if (getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)!="00 : 00")
                                     SvgPicture.asset(AppAssets.timerIcon, colorFilter: ColorFilter.mode(AppAssets.redColor, BlendMode.srcIn), height: 16, width: 16,),
                                   ],
                                 ),
