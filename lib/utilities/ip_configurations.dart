@@ -13,7 +13,8 @@ class IPConfigurations{
   static String cancelOrders = "$serverIp/cancel_order"; //POST
   static String readyForPickupOrders = "$serverIp/ready_order"; //POST
   static String completeOrders = "$serverIp/complete_order"; //POST
-  static String menuItems = "$serverIp/menu_items"; //POST
+  static String menuItems = "$serverIp/menu_items"; //GET
+  static String updateMenuTemAvailability = "$serverIp/update_item_availability"; //POST
 
   static String addPrinters="$serverIp/print_store"; //POST
   static String delUpPrinter="$serverIp/printer_action"; //POST
@@ -39,4 +40,11 @@ class IPConfigurations{
   static String readNotif="$serverIp/read_notification"; //POST
 
   static String printStatusUpdate="$serverIp/order_update_print_status"; //POST
+
+  static String connectedProviders="$serverIp/connected_providers"; //GET
+  static String providerStatus="$serverIp/provider_status"; //POST
+
+
+  
+
 }

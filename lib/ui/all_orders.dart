@@ -601,7 +601,9 @@ class _AllOrdersState extends State<AllOrders> {
                                                   onTap: () {
                                                     UtilityClass.showLoadingDialog(context);
                                                     try{
-                                                    provider.acceptOrder(userModel.authToken!, order.orderData.orderUuid, order.orderData.deliveryDate, getTimeString(minutes)).then((status) {
+                                                    provider.acceptOrder(userModel.authToken!, order.orderData.orderUuid, order.orderData.deliveryDate, getTimeString(minutes),
+                                                     false,
+                                                      null).then((status) {
                                                       UtilityClass.dismissLoading(context);
                                                       if(status.isSuccess){
                                                         Navigator.of(context).pop();

@@ -1,9 +1,11 @@
 
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:bugsnag_flutter/bugsnag_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as rv;
+import 'package:order_receiving/main.dart';
 import 'package:order_receiving/providers/riverpod_provider.dart';
 import 'package:order_receiving/ui/reciept/view_image_receipt.dart';
 import 'package:pdf_render/pdf_render.dart' as render;
@@ -29,6 +31,7 @@ import '../providers/app_provider.dart';
 import '../utilities/shares_pref_manager.dart';
 import '../utilities/utility_class.dart';
 import 'package:blue_thermal_printer/blue_thermal_printer.dart' as blu;
+import 'package:timezone/timezone.dart' as tz;
 
 
 class PreparingTab extends rv.ConsumerStatefulWidget {
@@ -62,17 +65,21 @@ class _PreparingTabState extends rv.ConsumerState<PreparingTab> {
   bool devCon =false;
   OrderModel? autoOrderData;
   String kitchenReceiptPath = "";
-
+  Timer? _countdownTimer;  // timer for preparation time
 
 
   @override
   void initState(){
-    super.initState();
+    
       getData();
      Future.microtask(() {
       ref.read(scanPrintersNotifierProvider.notifier).initilaizee();
        ref.read(scanPrintersNotifierProvider.notifier).scanForPrinters(context);
       });
+       //order preparation countdown timer
+        _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    if (mounted) setState(() {});
+  });
        Future.delayed(Duration(seconds: 5),(){
        if (mounted) {
         setState(() {
@@ -81,11 +88,69 @@ class _PreparingTabState extends rv.ConsumerState<PreparingTab> {
        }
       }
      );
+      super.initState();
   }
-  
 
+String getRemainingPreparationTime(
+    String acceptedAt,
+    String deliveryTime,
+) {
+  try {
+    /// 1️⃣ Convert "00:30:00" → Duration
+    final parts = deliveryTime.split(":");
 
-  void LoadingDialog(){
+    if (parts.length != 3) return "00 : 00";
+
+    final hours = int.parse(parts[0]);
+    final minutes = int.parse(parts[1]);
+    final seconds = int.parse(parts[2]);
+
+    final preparationDuration = Duration(
+      hours: hours,
+      minutes: minutes,
+      seconds: seconds,
+    );
+
+    /// 2️⃣ Parse accepted time (no timezone inside string)
+    final parsed =
+        DateTime.parse(acceptedAt.replaceFirst(' ', 'T'));
+
+    /// 3️⃣ Get correct timezone
+    final location = tz.getLocation(AppProvider.timezone);
+
+    /// 4️⃣ Create TZDateTime in that timezone (IMPORTANT)
+    final acceptedAtTime = tz.TZDateTime(
+      location,
+      parsed.year,
+      parsed.month,
+      parsed.day,
+      parsed.hour,
+      parsed.minute,
+      parsed.second,
+    );
+
+    /// 5️⃣ Add delivery duration
+    final expiryTime = acceptedAtTime.add(preparationDuration);
+
+    /// 6️⃣ Get current time in same timezone
+    final now = tz.TZDateTime.now(location);
+
+    final difference = expiryTime.difference(now);
+
+    if (difference.isNegative) return "00 : 00";
+
+    final remainingMinutes = difference.inMinutes;
+    final remainingSeconds = difference.inSeconds % 60;
+
+    return "${remainingMinutes.toString().padLeft(2, '0')} : "
+           "${remainingSeconds.toString().padLeft(2, '0')}";
+
+  } catch (e) {
+    print("Preparation Timer error: $e");
+    return "00 : 00";
+  }
+}
+ void LoadingDialog(){
     showDialog(context: context,
     builder: (BuildContext context) {  
       return AlertDialog(
@@ -242,8 +307,15 @@ void getWifiPrinters() {
                             const SizedBox(width: 12,),
                             Row(
                               children: [
-                                Text(order.orderData.deliveryTime, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
-                                const SizedBox(width: 4,),
+                                //  (order.orderData.deliveryTime=="" ||order.orderData.deliveryTime ==null)
+                                //    ? 
+                                   Text(order.orderData.deliveryTime, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,)
+
+                                  //  : (getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)=="00 : 00")
+                                  //   ? Text("")
+                                  //   : Text(getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime), style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                 ,  const SizedBox(width: 4,),
+                                // if (getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)!="00 : 00")
                                 SvgPicture.asset(AppAssets.timerIcon, colorFilter: ColorFilter.mode(AppAssets.redColor, BlendMode.srcIn), height: 16, width: 16,),
                               ],
                             ),
@@ -277,8 +349,15 @@ void getWifiPrinters() {
                                 const SizedBox(width: 12,),
                                 Row(
                                   children: [
-                                    Text(order.orderData.deliveryTime, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
-                                    const SizedBox(width: 4,),
+                                  // (order.orderData.deliveryTime=="" ||order.orderData.deliveryTime ==null)
+                                  //  ?
+                                    Text(order.orderData.deliveryTime, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,)
+
+                                  // :(getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)=="00 : 00") 
+                                  //  ? Text("")
+                                  //  : Text(getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime), style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                   , const SizedBox(width: 4,),
+                                    // if (getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)!="00 : 00")
                                     SvgPicture.asset(AppAssets.timerIcon, colorFilter: ColorFilter.mode(AppAssets.redColor, BlendMode.srcIn), height: 16, width: 16,),
                                   ],
                                 ),
@@ -375,7 +454,14 @@ void getWifiPrinters() {
                                         children: [
                                           Expanded(
                                             flex: 3,
-                                            child: Align(alignment: Alignment.centerLeft, child: Text(item.itemName, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Align(alignment: Alignment.centerLeft, child: Text(item.itemName, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                                if(item.price.sizeName!=null && item.price.sizeName!="")
+                                                Align(alignment: Alignment.centerLeft, child: Text("(${item.price.sizeName!})", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                              ],
+                                            ),
                                           ),
                                           const SizedBox(width: 10),
                                           Expanded(child: Align(alignment: Alignment.center, child: Text(item.qty, style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,))),
@@ -400,35 +486,178 @@ void getWifiPrinters() {
                                               Expanded(child: Align(alignment: Alignment.center, child: Text("", style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis,))),
                                             ],
                                           ),
-                                          ListView.builder(
-                                              shrinkWrap: true,
-                                              physics: const NeverScrollableScrollPhysics(),
-                                              itemCount: addonItemLocal.length,
-                                              itemBuilder: (context, index) {
-                                                final itemAddon = addonItemLocal[index];
-                                                return Padding(
-                                                  padding: const EdgeInsets.only(top: 8.0),
-                                                  child: ListView.builder(
-                                                      shrinkWrap: true,
-                                                      physics: const NeverScrollableScrollPhysics(),
-                                                      itemCount: itemAddon.addonItems!.length,
-                                                      itemBuilder: (context, index) {
-                                                        final itemAddonItem = itemAddon.addonItems![index];
-                                                        return Row(
-                                                          children: [
-                                                            Expanded(
-                                                              flex: 3,
-                                                              child: Align(alignment: Alignment.centerLeft, child: Text("${itemAddonItem.subItemName}", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
-                                                            ),
-                                                            const SizedBox(width: 10),
-                                                            Expanded(child: Align(alignment: Alignment.center, child: Text("${itemAddonItem.qty}", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,))),
-                                                            const SizedBox(width: 10),
-                                                            Expanded(child: Align(alignment: Alignment.center, child: Text("${formatToTwoDecimals(itemAddonItem.prettyAddonsTotal)}", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,))),
-                                                          ],
-                                                        );
-                                                      }),
-                                                );
-                                              }),
+                                        
+                                        ListView.builder(
+  shrinkWrap: true,
+  physics: const NeverScrollableScrollPhysics(),
+  itemCount: addonItemLocal.length,
+  itemBuilder: (context, index) {
+
+    final itemAddon = addonItemLocal[index];
+
+    final groupedAddons =
+        provider.groupAddonsByPortion(itemAddon.addonItems ?? []);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: groupedAddons.entries.map((entry) {
+
+          final portionId = entry.key;
+          final items = entry.value;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+
+              /// ✅ Show Portion Title
+              if (portionId != "no_portion")
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    provider.getPortionName(portionId),
+                    style: TextStyle(
+                      fontFamily: AppAssets.nunitoRegular,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+
+              /// ✅ Show Items Under Portion
+              ...items.map((itemAddonItem) {
+                return Row(
+                  children: [
+
+                     Expanded(
+                      flex: 3,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: 
+                        ( portionId != "no_portion")
+                        ? Text(
+                             " -${itemAddonItem.subItemName}",
+                          style: TextStyle(
+                            fontFamily: AppAssets.nunitoRegular,
+                            fontSize: 10,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                         )
+                        : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                             Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                             itemAddonItem.subcatName ?? "",
+                              style: TextStyle(
+                             fontFamily: AppAssets.nunitoRegular,
+                               fontSize: 10,
+                             ),
+                          ),
+                          
+                         ),
+                         Text(
+                             " -${itemAddonItem.subItemName}",
+                          style: TextStyle(
+                            fontFamily: AppAssets.nunitoRegular,
+                            fontSize: 10,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                         )
+                          ],)
+                      ),
+                    ),
+
+                 
+
+                    const SizedBox(width: 10),
+
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                          "${itemAddonItem.qty}",
+                          style: TextStyle(
+                            fontFamily: AppAssets.nunitoMedium,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 10),
+
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                          itemAddonItem.prettyAddonsTotal ?? "",
+                          style: TextStyle(
+                            fontFamily: AppAssets.nunitoMedium,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+
+              const SizedBox(height: 6),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  },
+),
+                                        //   ListView.builder(
+                                        //       shrinkWrap: true,
+                                        //       physics: const NeverScrollableScrollPhysics(),
+                                        //       itemCount: addonItemLocal.length,
+                                        //       itemBuilder: (context, index) {
+                                        //         final itemAddon = addonItemLocal[index];
+                                        //         return Padding(
+                                        //           padding: const EdgeInsets.only(top: 8.0),
+                                        //           child: ListView.builder(
+                                        //               shrinkWrap: true,
+                                        //               physics: const NeverScrollableScrollPhysics(),
+                                        //               itemCount: itemAddon.addonItems!.length,
+                                        //               itemBuilder: (context, index) {
+                                        //                 final itemAddonItem = itemAddon.addonItems![index];
+                                        //                 return Row(
+                                        //                   children: [
+                                        //                     (itemAddonItem.pizzaSizeName!=null && itemAddonItem.pizzaSizeName!="" )
+                                        //                   ? Expanded(
+                                        //                     flex: 3,
+                                        //                     child: Column(
+                                        //                       children: [
+                                        //                         Align(alignment: Alignment.centerLeft, child: Text("${itemAddonItem.pizzaSizeName?.firstToUpper()} Portion", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                                                                                                     
+                                        //                         Align(alignment: Alignment.centerLeft, child: Text(" -${itemAddonItem.subItemName}", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                                                                                                     
+                                        //                       ],
+                                                            
+                                        //                     ),
+                                        //                   )
+                                        //                   :
+                                        //                     Expanded(
+                                        //                       flex: 3,
+                                        //                       child: Align(alignment: Alignment.centerLeft, child: Text("${itemAddonItem.subItemName}", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                        //                     ),
+                                        //                     const SizedBox(width: 10),
+                                        //                     Expanded(child: Align(alignment: Alignment.center, child: Text("${itemAddonItem.qty}", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,))),
+                                        //                     const SizedBox(width: 10),
+                                        //                     Expanded(child: Align(alignment: Alignment.center, child: Text(itemAddonItem.prettyAddonsTotal!, style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,))),
+                                        //                   ],
+                                        //                 );
+                                        //               }),
+                                        //         );
+                                        //       }),
+                                        // // 
                                           const SizedBox(height: 8.0),
                                         ],
                                       ),
@@ -440,6 +669,7 @@ void getWifiPrinters() {
                                   ],
                                 );
                               }),
+                         
                           const SizedBox(height: 10),
                               if((order.tip!=null && order.tip!="" && order.tip!="0"))
                               Row(
@@ -459,17 +689,17 @@ void getWifiPrinters() {
                         itemBuilder: (BuildContext context, int index) {
                           final taxItem=order.allTaxesUse[index];
                            return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                             Text(
-                              // (order.orderData.taxType!=null) ?'${order.orderData.taxType!} tax':
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                               Text( 
+                                // (order.orderData.taxType!=null) ?'${order.orderData.taxType!} tax':
                                   (taxItem.taxName!.isNotEmpty) 
                                   ? taxItem.taxName!
                                   : "Tax",
-                                 style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14, color: AppAssets.widgetGrayColor),),
+                                   style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14, color: AppAssets.widgetGrayColor),),
                                    Text((taxItem.taxRateCalculated!=null) ?'\$ ${double.parse(taxItem.taxRateCalculated!.toString()).toStringAsFixed(2)}' : '\$ 0.00',
                                    style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14), ),
-                            ],
+                              ],
                             );
                          }
                        ),
@@ -1111,7 +1341,23 @@ if(port=="9101"){
 }
  
 }
-    
+    Map<String, List<AddonItems>> groupAddonsBySize(
+    List<AddonItems> addonItems) {
+
+  final Map<String, List<AddonItems>> grouped = {};
+
+  for (var item in addonItems) {
+    final key = (item.pizzaSizeName != null &&
+            item.pizzaSizeName!.isNotEmpty)
+        ? item.pizzaSizeName!
+        : "no_size";
+
+    grouped.putIfAbsent(key, () => []);
+    grouped[key]!.add(item);
+  }
+
+  return grouped;
+}
 
 Future<void> printReceiptBluetooth(BluetoothDevice device, String printerLogId, List<LineText> customListText,bool isDialog) async {
   debugPrint("printReceiptBluetooth called");

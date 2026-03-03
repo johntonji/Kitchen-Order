@@ -12,6 +12,8 @@ class UserModel {
   String? logo;
   String? path;
   bool? autoAccept;
+  int? merchantOrderRejectMins;
+ 
   // List<String>? wifiPrinters;
 
   UserModel.getInstance();
@@ -28,6 +30,7 @@ class UserModel {
         this.address,
         this.merchantId,
         this.logo,
+        this.merchantOrderRejectMins,
         this.path,
         this.autoAccept
         });
@@ -44,6 +47,7 @@ class UserModel {
     address = json['address'];
     merchantId = json['merchant_id'];
     logo = json['logo'];
+    merchantOrderRejectMins = json['merchant_order_reject_mins'];
     path = json['path'];
     autoAccept=json["merchant_auto_accept_order"];
 
@@ -64,6 +68,7 @@ class UserModel {
     data['logo'] = logo;
     data['path'] = path;
     data["merchant_auto_accept_order"]=autoAccept;
+    data["merchant_order_reject_mins"] = merchantOrderRejectMins;
 
     return data;
   }

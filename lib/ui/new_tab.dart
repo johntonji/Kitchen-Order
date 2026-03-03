@@ -1,4 +1,5 @@
 // import 'dart:nativewrappers/_internal/vm/lib/typed_data_patch.dart';
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:bugsnag_flutter/bugsnag_flutter.dart';
@@ -8,6 +9,7 @@ import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as rv;
 import 'package:flutter_svg/svg.dart';
+import 'package:order_receiving/main.dart';
 import 'package:order_receiving/models/order_model.dart';
 import 'package:order_receiving/models/reciept_modal.dart';
 import 'package:order_receiving/models/user_model.dart';
@@ -25,6 +27,7 @@ import 'package:image/image.dart' as img;
 import '../assets/app_assets.dart';
 import '../providers/app_provider.dart';
 import 'package:pdf_render/pdf_render.dart' as render;
+import 'package:timezone/timezone.dart' as tz;
 
 class NewTab extends rv.ConsumerStatefulWidget {
   const NewTab({super.key});
@@ -46,7 +49,8 @@ class _NewTabState extends rv.ConsumerState<NewTab> {
   bool kitchenPrinted=false;
   OrderModel? autoOrderDataNew;
   bool autoPrintFailed=false; 
- 
+ Timer? _countdownTimer; //timer for order cancel countdown
+
   @override
   void initState() {
     getData();
@@ -55,6 +59,10 @@ class _NewTabState extends rv.ConsumerState<NewTab> {
        ref.read(scanPrintersNotifierProvider.notifier).scanForPrinters(context);
       //  minutess=Provider.of<AppProvider>(context, listen: false).time1 ?? 20;
       });
+      //order cancelletion countdown timer
+        _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    if (mounted) setState(() {});
+  });
         if(AppProvider.autoPrinting==true){
       // debugPrint("autoPrintOrder is ${AppProvider.autoPrintOrder!.orderData.orderId}");
       for(OrderModel o in Provider.of<AppProvider>(context,listen: false).processingOrdersList){
@@ -79,11 +87,62 @@ class _NewTabState extends rv.ConsumerState<NewTab> {
     super.initState();
   }
 
-    Map<String,dynamic> kitchenData={};
+  @override
+void dispose() {
+  _countdownTimer?.cancel();
+  super.dispose();
+}
+
+String getRemainingTime(String createdAt) {
+  try {
+    int timeInSecs =
+        AppProvider.ordercancelletionTimer * 60;
+
+    // Parse as local date without timezone
+    final parsed =
+        DateTime.parse(createdAt.replaceFirst(' ', 'T'));
+
+    // Get timezone location
+    final location = tz.getLocation(AppProvider.timezone);
+
+    // Create TZDateTime directly in that timezone
+    final createdTime = tz.TZDateTime(
+      location,
+      parsed.year,
+      parsed.month,
+      parsed.day,
+      parsed.hour,
+      parsed.minute,
+      parsed.second,
+    );
+
+    final expiryTime =
+        createdTime.add(Duration(seconds: timeInSecs));
+
+    final now = tz.TZDateTime.now(location);
+
+    final difference = expiryTime.difference(now);
+
+    if (difference.isNegative) return "00 : 00";
+
+    final minutes = difference.inMinutes;
+    final seconds = difference.inSeconds % 60;
+
+    return "${minutes.toString().padLeft(2, '0')} : ${seconds.toString().padLeft(2, '0')}";
+
+  } catch (e) {
+    print("Timer error: $e");
+    return "00 : 00";
+  }
+}
+ 
+ 
+ Map<String,dynamic> kitchenData={};
       String kitchenReceiptPath = "";
   String receiptType="Client Receipt";
 
-    void autoPrint(OrderModel autoOrderData,int minutess) async{
+    void autoPrint(OrderModel autoOrderData,int minutess ,String? providerId) async{
+      print("provider ID 2 is $providerId");
       print("Acceptance time is  ${autoOrderData.orderData.acceptedAt}");
       // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Acceptance time is  ${autoOrderData.orderData.acceptedAt}")));
       Navigator.pop(context);
@@ -91,7 +150,7 @@ class _NewTabState extends rv.ConsumerState<NewTab> {
     UtilityClass.showLoadingDialog(context);
      debugPrint("inside autoPrint function");
     Future.delayed(Duration(seconds: 5),()async{
-      await autoPrintClient(autoOrderData,minutess);  
+      await autoPrintClient(autoOrderData,minutess,providerId);  
     });
 
 ///// testing  //////
@@ -141,7 +200,8 @@ class _NewTabState extends rv.ConsumerState<NewTab> {
   }
 
  ///autoPrint function for client receipt
- Future<void> autoPrintClient(OrderModel autoOrderData,int minutess)async{
+ Future<void> autoPrintClient(OrderModel autoOrderData,int minutess,String? providerId)async{
+  print("provider ID 3 is $providerId");
   print("autoPrintClient Acceptance time is  ${autoOrderData.orderData.acceptedAt}");
        final scanPrinterNotif = ref.watch(scanPrintersNotifierProvider); // for variables
 
@@ -167,7 +227,7 @@ class _NewTabState extends rv.ConsumerState<NewTab> {
         // if(mounted){   //caused crash
         // UtilityClass.dismissLoading(context);
         // }
-      endDecision(autoOrderData,minutess);
+      endDecision(autoOrderData,minutess,providerId);
       return;
      }
     }
@@ -182,7 +242,7 @@ class _NewTabState extends rv.ConsumerState<NewTab> {
                      if(mounted){
                        UtilityClass.dismissLoading(context);
                          }
-                         endDecision(autoOrderData,minutess);
+                         endDecision(autoOrderData,minutess,providerId);
                            return;
                             }
 
@@ -213,7 +273,7 @@ class _NewTabState extends rv.ConsumerState<NewTab> {
         if(mounted){
         UtilityClass.dismissLoading(context); 
         }
-        endDecision(autoOrderData,minutess);
+        endDecision(autoOrderData,minutess,providerId);
         return;
        }
      }
@@ -231,7 +291,7 @@ class _NewTabState extends rv.ConsumerState<NewTab> {
         if(mounted){
          UtilityClass.dismissLoading(context); 
         }
-        endDecision(autoOrderData,minutess); 
+        endDecision(autoOrderData,minutess,providerId); 
         return false;
        }else{
         return true;
@@ -276,7 +336,7 @@ class _NewTabState extends rv.ConsumerState<NewTab> {
             if(mounted){
             UtilityClass.dismissLoading(context);
             }
-            endDecision(autoOrderData,minutess);
+            endDecision(autoOrderData,minutess,providerId);
             return;
        }
       }
@@ -291,12 +351,12 @@ class _NewTabState extends rv.ConsumerState<NewTab> {
         if(mounted){
         UtilityClass.dismissLoading(context);
         }
-        endDecision(autoOrderData,minutess);
+        endDecision(autoOrderData,minutess,providerId);
        return;
       }
     }}
     if(autoPrintFailed==false){
-     await autoPrintKitchen(autoOrderData,minutess);  
+     await autoPrintKitchen(autoOrderData,minutess,null);  
     }
    }  
     Future.delayed(Duration(seconds: 4),()async{
@@ -317,7 +377,7 @@ class _NewTabState extends rv.ConsumerState<NewTab> {
  }
 
 
-Future<void> autoPrintKitchen(OrderModel autoOrderData,int minutess) async {
+Future<void> autoPrintKitchen(OrderModel autoOrderData,int minutess,String? providerId) async {
   final scanPrinterNotif = ref.watch(scanPrintersNotifierProvider); // for variables
 
   debugPrint("Start printing kitchen receipt------------------------------------------------------");
@@ -344,7 +404,7 @@ Future<void> autoPrintKitchen(OrderModel autoOrderData,int minutess) async {
         if(mounted){
      UtilityClass.dismissLoading(context);
         }
-      endDecision(autoOrderData,minutess);
+      endDecision(autoOrderData,minutess,providerId);
         }
       return;
     }
@@ -380,7 +440,7 @@ Future<void> autoPrintKitchen(OrderModel autoOrderData,int minutess) async {
            UtilityClass.dismissLoading(context);
           }
            Provider.of<AppProvider>(context,listen: false).updatePrinterLogs(userModel.authToken!, "failed",printerKitchenLogId);
-          endDecision(autoOrderData,minutess);
+          endDecision(autoOrderData,minutess,providerId);
           return;
          }
         }
@@ -417,18 +477,23 @@ Future<void> autoPrintKitchen(OrderModel autoOrderData,int minutess) async {
     }
    });
     debugPrint("Kitchen receipt completed printing $kitchenPrinted");
-       endDecision(autoOrderData,minutess);
+       endDecision(autoOrderData,minutess,providerId);
 }
 
 
 
-void endDecision(OrderModel autoOrderData,int minutess){
-
+void endDecision(OrderModel autoOrderData,int minutess,String? providerId){
+ print("provider ID 4 is $providerId");
   // all receipt prints
   if(clientPrinted == true && kitchenPrinted == true && autoPrintFailed==false) {
       Provider.of<AppProvider>(context, listen: false)
           .acceptOrder(userModel.authToken!, autoOrderData.orderData.orderUuid,
-              autoOrderData.orderData.deliveryDate, getTimeString(minutess))
+              autoOrderData.orderData.deliveryDate, getTimeString(minutess),
+              (autoOrderData.kitchenhubConnection==1 && autoOrderData.orderData.serviceCode=="delivery")
+              ? true
+              : false,
+             providerId
+              )
           .then((status) {
         if (status.isSuccess) {
           //
@@ -450,7 +515,11 @@ void endDecision(OrderModel autoOrderData,int minutess){
           partiallyPrintedDialog(autoOrderData,minutess);
            Provider.of<AppProvider>(context, listen: false)
           .acceptOrder(userModel.authToken!, autoOrderData.orderData.orderUuid,
-              autoOrderData.orderData.deliveryDate, getTimeString(minutess))
+              autoOrderData.orderData.deliveryDate, getTimeString(minutess),
+               (autoOrderData.kitchenhubConnection==1 && autoOrderData.orderData.serviceCode=="delivery")
+              ? true
+              : false,
+             providerId)
           .then((status) {
         if (!status.isSuccess) {
           UtilityClass.showFailedDialog(context, "Failed", status.message);
@@ -458,11 +527,12 @@ void endDecision(OrderModel autoOrderData,int minutess){
       });
     }   
     else{
-      allprintFailedDialog(autoOrderData,minutess);
+      allprintFailedDialog(autoOrderData,minutess,providerId);
     }
  }
 
-void allprintFailedDialog(OrderModel autoOrderData ,int minutess){
+void allprintFailedDialog(OrderModel autoOrderData ,int minutess,String? providerId){
+  print("provider ID 5 is $providerId");
       showDialog(
       context: context,
       barrierDismissible: false,
@@ -481,7 +551,11 @@ void allprintFailedDialog(OrderModel autoOrderData ,int minutess){
                     UtilityClass.showLoadingDialog(context);
                   Provider.of<AppProvider>(context, listen: false)
                      .acceptOrder(userModel.authToken!, autoOrderData.orderData.orderUuid,
-                    autoOrderData.orderData.deliveryDate, getTimeString(minutess))
+                    autoOrderData.orderData.deliveryDate, getTimeString(minutess),
+                     (autoOrderData.kitchenhubConnection==1 && autoOrderData.orderData.serviceCode=="delivery")
+                     ? true
+                    : false,
+                    providerId)
                             .then((status) {
                               if(mounted){
                           UtilityClass.dismissLoading(context);
@@ -933,15 +1007,48 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                                 children: [
                                   SvgPicture.asset(AppAssets.busyIcon, colorFilter: ColorFilter.mode(AppAssets.widgetGrayColor, BlendMode.srcIn), height: 12, width: 12,),
                                   const SizedBox(width: 4,),
-                                  Text("pending...", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: AppAssets.dimen_12, color: AppAssets.widgetGrayColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                  Text("pending...", style: 
+                                  TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: AppAssets.dimen_12, color: AppAssets.widgetGrayColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
                                 ],
                               ),
+                                      // Text("Accept the order in ${getRemainingTime(order.orderData.dateCreated!)} mins", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: AppAssets.dimen_12, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+
                             ],
                           )),
+                          
                           const SizedBox(width: 12,),
-                          Row(
+                          Column(
                             children: [
-                              Text("\$ ${double.parse(order.orderData.total.toString()).toStringAsFixed(2)}", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                              Row(
+                                children: [
+                                  Text("\$ ${double.parse(order.orderData.total.toString()).toStringAsFixed(2)}", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                               ],
+                                
+                              ),
+                              // SizedBox(height: 6,),
+                              //  Container(
+                              //   padding: EdgeInsets.fromLTRB(6, 3, 6, 3),
+                              //   decoration:BoxDecoration(
+                              //     borderRadius: BorderRadius.circular(10),
+                              //     color: AppAssets.greenColor
+                              //   ) ,
+                              //   child: Row(
+                              //     mainAxisSize: MainAxisSize.min,
+                              //     children: [
+                              //        SvgPicture.asset(AppAssets.timerIcon, colorFilter: ColorFilter.mode(AppAssets.whiteColor, BlendMode.srcIn), height: 16, width: 16,),
+                              // SizedBox(width: 3,),
+                              //       Text(
+                              //          getRemainingTime(order.orderData.dateCreated!),
+                              //         style: TextStyle(
+                              //         fontFamily: AppAssets.nunitoBold,
+                              //         fontSize: AppAssets.dimen_12,
+                              //        color: AppAssets.whiteColor,
+                              //      ),
+                              //     ),
+                              //     ],
+                              //   ),
+                              //  )
+                               
                             ],
                           ),
                         ],
@@ -967,14 +1074,45 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                                       SvgPicture.asset(AppAssets.busyIcon, colorFilter: ColorFilter.mode(AppAssets.widgetGrayColor, BlendMode.srcIn), height: 12, width: 12,),
                                       const SizedBox(width: 4,),
                                       Text("pending...", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: AppAssets.dimen_12, color: AppAssets.widgetGrayColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                    
                                     ],
                                   ),
+                                      // Text("Accept the order in ${getRemainingTime(order.orderData.dateCreated!)} mins", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: AppAssets.dimen_12, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+
                                 ],
                               )),
                               const SizedBox(width: 12,),
-                              Row(
+                              Column(
                                 children: [
-                                  Text("\$ ${double.parse(order.orderData.total.toString()).toStringAsFixed(2)}", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                  Row(
+                                    children: [
+                                      Text("\$ ${double.parse(order.orderData.total.toString()).toStringAsFixed(2)}", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                    ],
+                                  ),
+                              //        SizedBox(height: 6,),
+                              //  Container(
+                              //   padding: EdgeInsets.fromLTRB(6, 3, 6, 3),
+                              //   decoration:BoxDecoration(
+                              //     borderRadius: BorderRadius.circular(10),
+                              //     color: AppAssets.greenColor
+                              //   ) ,
+                              //   child: Row(
+                              //     mainAxisSize: MainAxisSize.min,
+                              //     children: [
+                              //        SvgPicture.asset(AppAssets.timerIcon, colorFilter: ColorFilter.mode(AppAssets.whiteColor, BlendMode.srcIn), height: 16, width: 16,),
+                              // SizedBox(width: 3,),
+                              //       Text(
+                              //          getRemainingTime(order.orderData.dateCreated!),
+                              //         style: TextStyle(
+                              //         fontFamily: AppAssets.nunitoBold,
+                              //         fontSize: AppAssets.dimen_12,
+                              //        color: AppAssets.whiteColor,
+                              //      ),
+                              //     ),
+                              //     ],
+                              //   ),
+                              //  )
+                            
                                 ],
                               ),
                             ],
@@ -1070,8 +1208,15 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                                       children: [
                                         Expanded(
                                           flex: 3,
-                                          child: Align(alignment: Alignment.centerLeft, child: Text(item.itemName, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
-                                        ),
+                                          child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Align(alignment: Alignment.centerLeft, child: Text(item.itemName, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                                if(item.price.sizeName!=null && item.price.sizeName!="")
+                                                Align(alignment: Alignment.centerLeft, child: Text("(${item.price.sizeName!})", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                              ],
+                                            )
+                                           ),
                                         const SizedBox(width: 10),
                                         Expanded(child: Align(alignment: Alignment.center, child: Text(item.qty, style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,))),
                                         const SizedBox(width: 10),
@@ -1096,35 +1241,177 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                                             Expanded(child: Align(alignment: Alignment.center, child: Text("", style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis,))),
                                           ],
                                         ),
-                                        ListView.builder(
-                                            shrinkWrap: true,
-                                            physics: const NeverScrollableScrollPhysics(),
-                                            itemCount: addonItemLocal.length,
-                                            itemBuilder: (context, index) {
-                                              final itemAddon = addonItemLocal[index];
-                                              return Padding(
-                                                padding: const EdgeInsets.only(top: 8.0),
-                                                child: ListView.builder(
-                                                    shrinkWrap: true,
-                                                    physics: const NeverScrollableScrollPhysics(),
-                                                    itemCount: itemAddon.addonItems!.length,
-                                                    itemBuilder: (context, index) {
-                                                      final itemAddonItem = itemAddon.addonItems![index];
-                                                      return Row(
-                                                        children: [
-                                                          Expanded(
-                                                            flex: 3,
-                                                            child: Align(alignment: Alignment.centerLeft, child: Text("${itemAddonItem.subItemName}", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
-                                                          ),
-                                                          const SizedBox(width: 10),
-                                                          Expanded(child: Align(alignment: Alignment.center, child: Text("${itemAddonItem.qty}", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,))),
-                                                          const SizedBox(width: 10),
-                                                          Expanded(child: Align(alignment: Alignment.center, child: Text("${formatToTwoDecimals(itemAddonItem.prettyAddonsTotal)}", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,))),
-                                                        ],
-                                                      );
-                                                    }),
-                                              );
-                                            }),
+                                       ListView.builder(
+  shrinkWrap: true,
+  physics: const NeverScrollableScrollPhysics(),
+  itemCount: addonItemLocal.length,
+  itemBuilder: (context, index) {
+
+    final itemAddon = addonItemLocal[index];
+
+    final groupedAddons =
+        provider.groupAddonsByPortion(itemAddon.addonItems ?? []);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: groupedAddons.entries.map((entry) {
+
+          final portionId = entry.key;
+          final items = entry.value;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+
+              ///  Show Portion Title
+              if (portionId != "no_portion")
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    provider.getPortionName(portionId),
+                    style: TextStyle(
+                      fontFamily: AppAssets.nunitoRegular,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+
+              /// ✅ Show Items Under Portion
+              ...items.map((itemAddonItem) {
+                return Row(
+                  children: [
+
+                      Expanded(
+                      flex: 3,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: 
+                        ( portionId != "no_portion")
+                        ? Text(
+                             " -${itemAddonItem.subItemName}",
+                          style: TextStyle(
+                            fontFamily: AppAssets.nunitoRegular,
+                            fontSize: 10,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                         )
+                        : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                             Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                             itemAddonItem.subcatName ?? "",
+                              style: TextStyle(
+                             fontFamily: AppAssets.nunitoRegular,
+                               fontSize: 10,
+                             ),
+                          ),
+                          
+                         ),
+                         Text(
+                             " -${itemAddonItem.subItemName}",
+                          style: TextStyle(
+                            fontFamily: AppAssets.nunitoRegular,
+                            fontSize: 10,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                         )
+                          ],)
+                      ),
+                    ),
+
+                 
+
+                    const SizedBox(width: 10),
+
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                          "${itemAddonItem.qty}",
+                          style: TextStyle(
+                            fontFamily: AppAssets.nunitoMedium,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 10),
+
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                          itemAddonItem.prettyAddonsTotal ?? "",
+                          style: TextStyle(
+                            fontFamily: AppAssets.nunitoMedium,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+
+              const SizedBox(height: 6),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  },
+),
+                                       
+                                        // ListView.builder(
+                                        //     shrinkWrap: true,
+                                        //     physics: const NeverScrollableScrollPhysics(),
+                                        //     itemCount: addonItemLocal.length,
+                                        //     itemBuilder: (context, index) {
+                                        //       final itemAddon = addonItemLocal[index];
+                                        //       return Padding(
+                                        //         padding: const EdgeInsets.only(top: 8.0),
+                                        //         child: ListView.builder(
+                                        //             shrinkWrap: true,
+                                        //             physics: const NeverScrollableScrollPhysics(),
+                                        //             itemCount: itemAddon.addonItems!.length,
+                                        //             itemBuilder: (context, index) {
+                                        //               final itemAddonItem = itemAddon.addonItems![index];
+                                        //               return Row(
+                                        //                 children: [
+                                        //                   (itemAddonItem.pizzaSizeName!=null && itemAddonItem.pizzaSizeName!="" )
+                                        //                   ? Expanded(
+                                        //                     flex: 3,
+                                        //                     child: Column(
+                                        //                       children: [
+                                        //                         Align(alignment: Alignment.centerLeft, child: Text("${itemAddonItem.pizzaSizeName?.firstToUpper()} Portion", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                                                                                                     
+                                        //                         Align(alignment: Alignment.centerLeft, child: Text(" -${itemAddonItem.subItemName}", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                                                                                                     
+                                        //                       ],
+                                                            
+                                        //                     ),
+                                        //                   )
+                                        //                   : Expanded(
+                                        //                     flex: 3,
+                                        //                     child: Align(alignment: Alignment.centerLeft, child: Text("${itemAddonItem.subItemName}", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                        //                   ),
+                                        //                   const SizedBox(width: 10),
+                                        //                   Expanded(child: Align(alignment: Alignment.center, child: Text("${itemAddonItem.qty}", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,))),
+                                        //                   const SizedBox(width: 10),
+                                        //                   Expanded(child: Align(alignment: Alignment.center, child: Text("${formatToTwoDecimals(itemAddonItem.price)}", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,))),
+                                        //                 ],
+                                        //               );
+                                        //             }),
+                                        //       );
+                                        //     }),
+                                       
                                         const SizedBox(height: 8.0),
                                       ],
                                     ),
@@ -1155,17 +1442,17 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                         itemBuilder: (BuildContext context, int index) {
                           final taxItem=order.allTaxesUse[index];
                            return Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                           Text( 
-                            // (order.orderData.taxType!=null) ?'${order.orderData.taxType!} tax':
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                               Text( 
+                                // (order.orderData.taxType!=null) ?'${order.orderData.taxType!} tax':
                                   (taxItem.taxName!.isNotEmpty) 
                                   ? taxItem.taxName!
                                   : "Tax",
-                               style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14, color: AppAssets.widgetGrayColor),),
+                                   style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14, color: AppAssets.widgetGrayColor),),
                                    Text((taxItem.taxRateCalculated!=null) ?'\$ ${double.parse(taxItem.taxRateCalculated!.toString()).toStringAsFixed(2)}' : '\$ 0.00',
-                                 style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14), ),
-                          ],
+                                   style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14), ),
+                              ],
                             );
                          }
                        ),
@@ -1347,7 +1634,7 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                                         mainAxisSize: MainAxisSize.min,
                                         children: <Widget>[
                                           const SizedBox(height: 50),
-                                          Text('Delivery time', style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 20, color: AppAssets.blackColor),),
+                                          Text('Preparation time', style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 20, color: AppAssets.blackColor),),
                                           const SizedBox(height: 30),
                                           Row(
                                             mainAxisAlignment: MainAxisAlignment.center,
@@ -1396,7 +1683,34 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                                             ],
                                           ),
                                           const SizedBox(height: 30),
-                                          GestureDetector(
+                                          // (order.kitchenhubConnection==1 && order.orderData.serviceCode =="delivery" && order.connectedProvidersList!.isNotEmpty)
+                                          // ? GestureDetector(
+                                          //   onTap: () {
+                                          //     Navigator.pop(context);
+                                          //     selectProviderDialog(context, order,minutes);
+                                          //     // order.orderData.acceptedAt= AppProvider.getCurrentTime().toString();
+                                          //     // order.orderData.deliveryTime=getTimeString(minutes);
+                                          //     // autoPrintFailed=false;
+                                          //     //   if(order.orderData.orderId==AppProvider.latestNewOrderNo){
+                                          //     //      AppProvider.ringBell=false;
+                                          //     //     }
+                                          //     // Future.delayed(Duration(seconds: 1),(){
+                                          //     //   autoPrint(order,minutes);
+                                          //     // });
+                                          //   },
+                                          //   child: Container(
+                                          //     height: 40,
+                                          //     margin: const EdgeInsets.only(top: 20, left: 50, right: 50),
+                                          //     padding: const EdgeInsets.only(left: 16, right: 16),
+                                          //     decoration: BoxDecoration(
+                                          //       color: AppAssets.greenColor,
+                                          //       borderRadius: BorderRadius.circular(10),
+                                          //     ),
+                                          //     child: Center(child: Text("CONFIRM", style: TextStyle(fontSize: 12, fontFamily: AppAssets.nunitoBold, color: AppAssets.whiteColor), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                          //   ),
+                                          // )
+                                          // :
+                                           GestureDetector(
                                             onTap: () {
                                               order.orderData.acceptedAt= AppProvider.getCurrentTime().toString();
                                               order.orderData.deliveryTime=getTimeString(minutes);
@@ -1405,24 +1719,8 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                                                    AppProvider.ringBell=false;
                                                   }
                                               Future.delayed(Duration(seconds: 1),(){
-                                                autoPrint(order,minutes);
+                                                autoPrint(order,minutes,null);
                                               });
-
-                                              //  autoPrint(order);
-                                              // UtilityClass.showLoadingDialog(context);
-                                              // provider.acceptOrder(userModel.authToken!, order.orderData.orderUuid, order.orderData.deliveryDate, getTimeString(minutes)).then((status) {
-                                              //   // UtilityClass.dismissLoading(context);
-                                              //   if(status.isSuccess){
-                                              //     Navigator.of(context).pop();
-                                              //     UtilityClass.showSuccessDialog(context, "Order Status", status.message);
-                                              //     setState(() {
-                                              //       minutes  = 0;
-                                              //       });
-                                              //     }else{
-                                              //     Navigator.of(context).pop();
-                                              //     UtilityClass.showFailedDialog(context, "Failed", status.message);
-                                              //   }
-                                              // });
                                             },
                                             child: Container(
                                               height: 40,
@@ -1488,4 +1786,138 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
     final int minute = value % 60;
     return '${hour.toString().padLeft(2, "0")}:${minute.toString().padLeft(2, "0")}';
   }
+
+   selectProviderDialog(BuildContext context1, OrderModel order,int minutes) {
+  List<String> providersList=[];
+  String selectedProvider = order.connectedProvidersList![0].providerId ?? "";
+  for(ConnectedProvidersModel p in order.connectedProvidersList!){
+    providersList.add(p.providerId!);
+  }
+  print("providersList is $providersList");
+    showDialog(
+      context: context1,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Consumer<AppProvider>(builder: (context, provider, isChild) {
+         return StatefulBuilder(
+                builder: (context, setState) {
+              return AlertDialog(
+              shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(20.0))),
+              contentPadding: const EdgeInsets.all(0),
+              elevation: 6,
+              scrollable: true,
+              backgroundColor: AppAssets.whiteColor,
+              content:  Column(
+              mainAxisSize: MainAxisSize.min,
+               children: [
+                  Row(
+                 mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(onPressed: (){
+                      Navigator.pop(context);
+                    }, icon: Icon(Icons.close ,color: Colors.grey,))
+                  ],
+                ),
+                 Container(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+                    decoration: const BoxDecoration(
+                      color: AppAssets.whiteColor,
+                      borderRadius: BorderRadius.all(Radius.circular(20.0)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Text(
+                            "Order #${order.orderData.orderId}",
+                            style: TextStyle(
+                              fontWeight:FontWeight.bold,
+                                fontSize: AppAssets.dimen_16,
+                                fontFamily: AppAssets.nunitoMedium,
+                                color: AppAssets.textDarkGrayColor),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                           ),
+                        ),
+                        SizedBox(height: 20,),
+                    
+                   Text("Select Provider ",style: TextStyle(fontFamily: AppAssets.nunitoRegular,fontWeight: FontWeight.bold)),
+                    SizedBox(height: 10,),
+                           Container(
+                            width: double.infinity,
+                                    decoration: BoxDecoration(
+                                        border: Border.all(
+                                            color: Colors.black, width: 0.5),
+                                        borderRadius: BorderRadius.circular(10)),
+                                    padding: EdgeInsets.only(left: 6, right: 6),
+                                    child: DropdownButton(
+                                      isExpanded: true,
+                                      underline: SizedBox(),
+                                      padding: EdgeInsets.all(5),
+                                      value: selectedProvider,
+                                      icon: const Icon(Icons.keyboard_arrow_down),
+                                    items: 
+                                      providersList.map((String provider) {
+                                        return DropdownMenuItem(
+                                          value: provider,
+                                          child: Text(provider,style:TextStyle(fontFamily: AppAssets.nunitoRegular)),
+                                        );
+                                      }).toList(), onChanged: (String? value) { 
+                                         if (mounted){
+                                         setState(() {
+                                         selectedProvider  = value!;
+                                        });}
+                                       },
+                                     
+                                    ),
+                                  ),
+                                
+              
+                       SizedBox(
+                          height: 30,
+                        ),
+                         GestureDetector(
+                           onTap:(){
+                            print("provider ID 1 is $selectedProvider");
+                             order.orderData.acceptedAt= AppProvider.getCurrentTime().toString();
+                                     order.orderData.deliveryTime=getTimeString(minutes);
+                                     autoPrintFailed=false;
+                                       if(order.orderData.orderId==AppProvider.latestNewOrderNo){
+                                          AppProvider.ringBell=false;
+                                         }
+                                     Future.delayed(Duration(seconds: 1),(){
+                                       autoPrint(order,minutes,selectedProvider);
+                                     });
+                           },
+                          child: 
+                            Container(
+                             height: 36,
+                             padding: const EdgeInsets.only(left: 16, right: 16),
+                             decoration: BoxDecoration(
+                               color:AppAssets.greenColor,
+                               borderRadius: BorderRadius.circular(10),
+                             ),
+                             child: Center(child: Text("ACCEPT ORDER", style: TextStyle(fontSize: 12, fontFamily: AppAssets.nunitoBold, color: AppAssets.whiteColor), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                           )
+                         )
+                       
+                      ],
+                    ),
+                  ),
+               ],
+             ),
+            );
+           }
+          );
+      });
+      },
+    ).then((_){
+   if (mounted){
+     setState(() {
+      receiptType="Client Receipt";
+    });}
+    });
+  }
+
 }

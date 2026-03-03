@@ -177,11 +177,23 @@ Future<String> dynKitchenPdfGenerate(
                                   mainAxisAlignment:
                                       pw.MainAxisAlignment.spaceBetween,
                                   children: [
-                                    pw.Text(
-                                        "${orderModal.items[index].qty}X ${orderModal.items[index].itemName}",
+                                  Column(
+                                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                      children:[
+                                         pw.Text(
+                                        "${orderModal.items[index].qty}X ${normalizeText(orderModal.items[index].itemName)}",
                                         style: pw.TextStyle(
                                             fontSize: kitchenItemsModel.itemsSize!
                                                 .toDouble())),
+                                          
+                                          if(orderModal.items[index].price.sizeName!=null && orderModal.items[index].price.sizeName!="")
+                                                 pw.Text(
+                                        "(${normalizeText(orderModal.items[index].price.sizeName!)})",
+                                        style: pw.TextStyle(
+                                            fontSize: kitchenItemsModel.itemsSize!
+                                                .toDouble())),
+                                      ]
+                                      ),
                                     if(kitchenItemsModel.addCheckbox==true)
                                     pw.Image(uncheckedImage, width:kitchenItemsModel.itemsSize!.toDouble()+8, height: kitchenItemsModel.itemsSize!.toDouble()+8), 
 
@@ -197,7 +209,7 @@ Future<String> dynKitchenPdfGenerate(
                                     List<String> subItems = [];
                                     for (AddonItems subItemName
                                         in addons.addonItems!) {
-                                      subItems.add(subItemName.subItemName!);
+                                      subItems.add(normalizeText(subItemName.subItemName!));
                                     }
                                     return 
                                     Column( 
@@ -205,47 +217,118 @@ Future<String> dynKitchenPdfGenerate(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                       if(addons.subcategoryName!=null && addons.subcategoryName!="")
-                                       if(kitchenItemsModel.showAddonNames==true)
-                                          pw.Text('- ${addons.subcategoryName}:',
+                                       if(kitchenItemsModel.showAddonNames==true) 
+                                       if(addons.addonItems!=null && addons.addonItems!.isNotEmpty)
+                                       if(addons.addonItems![0].pizzaPortionSectionId==null || addons.addonItems![0].pizzaPortionSectionId=="")
+                                          pw.Text('- ${normalizeText(addons.subcategoryName!)}:',
                                             style: pw.TextStyle(
                                                 fontSize: kitchenItemsModel.choicAddonSize!
                                                     .toDouble(),
                                                 fontItalic:
                                                     Font.timesItalic())),
-                                           ListView(
-                                      children :  List.generate(
-                                          addons.addonItems!
-                                              .length, (i) {
+                                                                      ListView(
+  children: groupAddonsByPortion(addons.addonItems!).entries.map((entry) {
+    final portionId = entry.key;
+    final items = entry.value;
+
+    String portionTitle = "";
+
+    if (portionId == "1") {
+      portionTitle = "   - Whole Portion";
+    } else if (portionId == "2") {
+      portionTitle = "   - Left Portion";
+    } else if (portionId == "3") {
+      portionTitle = "   - Right Portion";
+    }
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+
+        ///  Print Portion Title Only Once
+        if (portionId != "no_portion")
+          pw.Text(
+            portionTitle,
+            style: pw.TextStyle(
+              fontSize: kitchenItemsModel.itemCommentSize!.toDouble(),
+              fontItalic: Font.timesItalic(),
+            ),
+          ),
+
+        ///  Print Items Under That Portion
+        ...items.map((itemAddonItem) {
+          return pw.Row(
+            children: [
+
+              pw.Text("      ${normalizeText(itemAddonItem.subItemName!)}",
+                  style: pw.TextStyle(
+                    fontSize: kitchenItemsModel.itemCommentSize!.toDouble(),
+                    fontItalic: Font.timesItalic(),
+                  )),
+
+             
+            ],
+          );
+        }).toList(),
+      ],
+    );
+  }).toList(),
+)
+                                 
+                                  //          ListView(
+                                  //     children :  List.generate(
+                                  //         addons.addonItems!
+                                  //             .length, (i) {
                                      
-                                   final itemAddonItem = addons.addonItems![i];
-                                   return  pw.Row(children: [
-                                    (!itemAddonItem.subItemName!.contains(":"))
-                                    ? Text("  * ")
-                                    : Text(" "),
-                                      // if (kitchenItemsModel.showAddonNames == true)
+                                  //  final itemAddonItem = addons.addonItems![i];
+                                  //  return  pw.Row(children: [
+                                  //   (!itemAddonItem.subItemName!.contains(":"))
+                                  //   ? Text("  * ")
+                                  //   : Text(" "),
+                                  //     // if (kitchenItemsModel.showAddonNames == true)
                                       
-                                        // pw.Text('${addons.subcategoryName}:',
-                                        //     style: pw.TextStyle(
-                                        //         fontSize: kitchenItemsModel.choicAddonSize!
-                                        //             .toDouble(),
-                                        //         fontItalic:
-                                        //             Font.timesItalic())),
-                                      pw.Text(
-                                      
-                                         itemAddonItem.subItemName!,
-                                          style: pw.TextStyle(
-                                              fontSize: kitchenItemsModel
-                                                  .itemCommentSize!
-                                                  .toDouble(),
-                                              fontItalic: Font.timesItalic())),
-                                    ]);
-                                     })
-                                  )
+                                  //       // pw.Text('${addons.subcategoryName}:',
+                                  //       //     style: pw.TextStyle(
+                                  //       //         fontSize: kitchenItemsModel.choicAddonSize!
+                                  //       //             .toDouble(),
+                                  //       //         fontItalic:
+                                  //       //             Font.timesItalic())),
+                                  //     (itemAddonItem.pizzaSizeName!=null && itemAddonItem.pizzaSizeName!="")
+                                  //     ? pw.Column(
+                                  //       crossAxisAlignment: CrossAxisAlignment.start,
+                                  //       children: [
+                                  //         pw.Text(
+                                  //         "${normalizeText(itemAddonItem.pizzaSizeName!)} portion",
+                                  //         style: pw.TextStyle(
+                                  //             fontSize: kitchenItemsModel
+                                  //                 .itemCommentSize!
+                                  //                 .toDouble(),
+                                  //             fontItalic: Font.timesItalic())),
+                                  //             pw.Text(
+                                  //         " -${normalizeText(itemAddonItem.subItemName!)}",
+                                  //         style: pw.TextStyle(
+                                  //             fontSize: kitchenItemsModel
+                                  //                 .itemCommentSize!
+                                  //                 .toDouble(),
+                                  //             fontItalic: Font.timesItalic()))
+                                  //       ]
+                                  //     )
+                                  //     : pw.Text(
+                                  //        normalizeText(itemAddonItem.subItemName!),
+                                  //         style: pw.TextStyle(
+                                  //             fontSize: kitchenItemsModel
+                                  //                 .itemCommentSize!
+                                  //                 .toDouble(),
+                                  //             fontItalic: Font.timesItalic())),
+                                  //   ]);
+                                  //    })
+                                  // )
                                  
                                       ]
                                     ) ;
                                   })
                                   ),
+                              
                                 if (orderModal
                                             .items[index].specialInstructions !=
                                         null &&

@@ -11,6 +11,7 @@ import 'package:order_receiving/models/menu_model2.dart';
 import 'package:order_receiving/models/notif_model.dart';
 import 'package:order_receiving/models/order_model.dart';
 import 'package:order_receiving/models/printer_modal.dart';
+import 'package:order_receiving/models/provider_model.dart';
 import 'package:order_receiving/models/user_model.dart';
 import 'package:order_receiving/utilities/base/my_message.dart';
 
@@ -41,6 +42,7 @@ class AppProvider with ChangeNotifier{
   List<OrderModel> allOrdersList = [];
   List<MenuModel2>  restrauntMenu=[];
   List<NotifModel>  notiList=[];
+  List<ProviderModel> connectedProvidersList=[];
   static String termsCondition="";
   static String pivacyPolicy="";
   static bool availabilityStatus=false;
@@ -58,7 +60,7 @@ class AppProvider with ChangeNotifier{
  static String defaultClientPrinterID="";
  static String defaultKitchenPrinterID="";
  static String portDefaultKitchenPrinter="";  //NEW
-
+ static int ordercancelletionTimer=0;
  static int notifCount=0;
 
   static bool autoAcceptStatus=false;
@@ -264,6 +266,7 @@ static String? getPort(String ipWithPort) {
               merchantId: parsedResponse["details"]["payload"]["merchant_id"],
               logo: parsedResponse["details"]["user_data"]["logo"],
               path: parsedResponse["details"]["user_data"]["path"],
+              merchantOrderRejectMins: parsedResponse["details"]["user_data"]["merchant_order_reject_mins"],
           );
           newLogin=true;
           autoAcceptStatus=parsedResponse["details"]["payload"]["merchant_auto_accept_order"];
@@ -326,14 +329,14 @@ static String? getPort(String ipWithPort) {
    Future<ResponseModel> menu(String token)async{
     UserModel userModel =UserModel.getInstance();
       userModel= await  SharedPreferenceManager.getInstance().getUserData();
-   
+   restrauntMenu.clear();
     progressStart();
     ResponseModel responseModel;
     try {
       ApiResponse apiResponse = await appRepo.getMenuItems(token);
       if (apiResponse.response != null && apiResponse.response!.statusCode == 200) {
         var parsedResponse = jsonDecode(apiResponse.response!.body);
-
+         debugPrint("[menu] is outside $parsedResponse");
         if(parsedResponse["code"] == 200 || parsedResponse["code"] == 1|| parsedResponse["code"] == 2){
 
          try{           
@@ -348,7 +351,6 @@ static String? getPort(String ipWithPort) {
         }else{
           responseModel = ResponseModel(false, parsedResponse["msg"]);
         }
-
       } else {
         responseModel = ResponseModel(false, "Something went wrong");
       }
@@ -358,6 +360,41 @@ static String? getPort(String ipWithPort) {
     }catch(exception){
       responseModel = ResponseModel(false, "Something went wrong");
       progressReset();
+      return responseModel;
+    }
+  }
+
+
+// update menu Items availability
+   Future<ResponseModel> updateMenuItemAvailability(String token, String itemUuid, String availability)async{
+    ResponseModel responseModel;
+    print("[updateMenuItemAvailability] itemUuid is $itemUuid, availability is $availability");
+    try {
+      ApiResponse apiResponse = await appRepo.updateMenuTemAvailability(token, itemUuid,availability );
+       
+      if (apiResponse.response != null && apiResponse.response!.statusCode == 200) {
+        print("[updateMenuItemAvailability] response is ${apiResponse.response!.body}");
+        var parsedResponse = jsonDecode(apiResponse.response!.body);
+        if(parsedResponse["code"] == 200 || parsedResponse["code"] == 1 || parsedResponse["code"] == 2){
+          responseModel = ResponseModel(true, parsedResponse["msg"]);
+          ///// change availability in local list
+          // for(int i=0;i<restrauntMenu.length;i++){
+          //   if(restrauntMenu[i].itemUuid == itemUuid){
+          //     restrauntMenu[i].available = availability;
+          //     break;
+          //   }
+          // }
+        }else{
+          responseModel = ResponseModel(false, parsedResponse["msg"]);
+       }
+      }else {
+        responseModel = ResponseModel(false, "Something went wrong");
+      }
+      notifyToProvider();
+      return responseModel;
+    }catch(exception){
+      responseModel = ResponseModel(false, "Something went wrong");
+      notifyToProvider();
       return responseModel;
     }
   }
@@ -367,43 +404,89 @@ static String? getPort(String ipWithPort) {
     newProgress = true;
     newOrdersList.clear();
     notifyListeners();
-    ResponseModel responseModel;
+
     try {
       ApiResponse apiResponse = await appRepo.newOrders(token);
-      if (apiResponse.response != null && apiResponse.response!.statusCode == 200) {
-        var parsedResponse =jsonDecode(apiResponse.response!.body);
+
+    if (apiResponse.response != null &&
+        apiResponse.response!.statusCode == 200) {
+
+      final parsedResponse =
+          jsonDecode(apiResponse.response!.body);
+
+      debugPrint("[newOrders] response: $parsedResponse");
        
-        if(parsedResponse["code"] == 200 || parsedResponse["code"] == 2|| parsedResponse["code"] == 1){
-          newOrdersList.clear();
-          parsedResponse["details"]["data"].forEach((element) {
-            time1=int.parse(OrderModel.fromJson(element).orderCompletionTime!);
-            print("time1 in newOrders is $time1");
-            OrderModel model = OrderModel.fromJson(element);
+      if (parsedResponse["code"] == 200 ||
+          parsedResponse["code"] == 2 ||
+          parsedResponse["code"] == 1) {
 
-            newOrdersList.add(model);
-          });
+        final data = parsedResponse["details"]?["data"];
 
-          debugPrint("______: ${newOrdersList.length}");
+        if (data is List) {
+          for (var element in data) {
+            try {
+              OrderModel model =
+                  OrderModel.fromJson(element);
 
-          responseModel = ResponseModel(true, parsedResponse["msg"]);
-        }else{
-          responseModel = ResponseModel(false, parsedResponse["msg"]);
+              /// ✅ SAFE TIME PARSING
+              final completionTime =
+                  model.orderCompletionTime;
+
+              if (completionTime != null &&
+                  completionTime.isNotEmpty &&
+                  completionTime != "null") {
+                try {
+                  DateTime date =
+                      DateTime.parse(completionTime);
+
+                  time1 =
+                      date.millisecondsSinceEpoch;
+
+                  debugPrint(
+                      "time1 in newOrders is $time1");
+                } catch (e) {
+                  debugPrint(
+                      "Invalid date format: $completionTime");
+                }
+              }
+
+              newOrdersList.add(model);
+            } catch (e) {
+              debugPrint(
+                  "[newOrders] parsing error: $e");
+            }
+          }
         }
 
+        debugPrint(
+            "Total new orders: ${newOrdersList.length}");
+
+        newProgress = false;
+        notifyToProvider();
+        return ResponseModel(
+            true, parsedResponse["msg"]);
       } else {
-        responseModel = ResponseModel(false, "Something went wrong");
+        newProgress = false;
+        notifyToProvider();
+        return ResponseModel(
+            false, parsedResponse["msg"]);
       }
+    } else {
+      newProgress = false;
+      notifyToProvider();
+      return ResponseModel(
+          false, "Something went wrong");
+    }
+  } catch (exception) {
+    debugPrint("[newOrders] error: $exception");
 
       newProgress = false;
       notifyToProvider();
-      return responseModel;
-    }catch(exception){
-      responseModel = ResponseModel(false, "Something went wrong");
-      newProgress = false;
-      notifyToProvider();
-      return responseModel;
+    return ResponseModel(
+        false, "Something went wrong");
     }
   }
+ 
 
 static Timer? soundStopTimer;
 
@@ -446,7 +529,10 @@ void playSoundForDuration() async {
             print(" msg is no result");
             newOrdersList.clear();
           }
+          List<String> responseOrderIds = [];  //add order Ids in the list
           parsedResponse["details"]["data"].forEach((element) {
+            responseOrderIds.add(OrderModel.fromJson(element).orderData.orderId); /// add order Ids into the list
+            
             OrderModel model = OrderModel.fromJson(element);
             int index = newOrdersList.indexWhere((item) => item.orderData.orderId == model.orderData.orderId);
            if(-1 == index){
@@ -531,10 +617,12 @@ void playSoundForDuration() async {
             }
           });
 
+         // ends here
+newOrdersList
+        .removeWhere((item) => !responseOrderIds.contains(item.orderData.orderId));  // remove order which are not in the response
+
           debugPrint("______: ${newOrdersList.length}");
-
           responseModel = ResponseModel(true, parsedResponse["msg"]);
-
         }else{
           responseModel = ResponseModel(false, parsedResponse["msg"]);
         }
@@ -577,10 +665,11 @@ void playSoundForDuration() async {
         var parsedResponse = jsonDecode(apiResponse.response!.body);
         debugPrint("[processingOrders] outside  are $parsedResponse");
 
-        newOrders(token);
+        // newOrders(token);
         if(parsedResponse["code"] == 200 || parsedResponse["code"] == 2|| parsedResponse["code"] == 1){
         debugPrint("[processingOrders] inside  are $parsedResponse");
-        debugPrint("[processingOrders]  customer data is ${parsedResponse["details"]["data"][6]["customer"]}");
+        // debugPrint("[processingOrders]  customer data is ${parsedResponse["details"]["data"][6]["customer"]}");
+        
          processingOrdersList.clear();
           parsedResponse["details"]["data"].forEach((element) {
             try{
@@ -776,7 +865,7 @@ void playSoundForDuration() async {
     ResponseModel responseModel;
     print("[acceptOrderr] orderUUID is $orderUUID, date is $date, time is $time");
     try {
-      ApiResponse apiResponse = await appRepo.acceptOrder(token, orderUUID, date, time);
+      ApiResponse apiResponse = await appRepo.acceptOrder(token, orderUUID, date, time,providerFlag,deliveryBy);
        
       if (apiResponse.response != null && apiResponse.response!.statusCode == 200) {
         print("[acceptOrderr] response is ${apiResponse.response!.body}");
@@ -790,9 +879,9 @@ void playSoundForDuration() async {
           //   ringBell=false;
           // }
 
-          newOrdersList.clear();
+          // newOrdersList.clear();
 
-          await newOrders(token).then((value) async{
+          // await newOrders(token).then((value) async{
 
           processingOrdersList.clear();
           await processingOrders(token).then((v){
@@ -802,7 +891,7 @@ void playSoundForDuration() async {
           selectedTab=1; 
          }
         );
-          });
+          // });
 
        }else{
           responseModel = ResponseModel(false, parsedResponse["msg"]);
@@ -1706,6 +1795,135 @@ Future<ResponseModel> deleteNotif(String token) async {
   }
 
 
+
+Future<ResponseModel> connectedProviders(String token) async {
+  connectedProvidersList.clear();
+  notifyListeners();
+
+  try {
+    ApiResponse apiResponse = await appRepo.connectedProviders(token);
+
+    if (apiResponse.response != null &&
+        apiResponse.response!.statusCode == 200) {
+      var parsedResponse =
+          jsonDecode(apiResponse.response!.body);
+
+      debugPrint(
+          "[connectedProviders] response: $parsedResponse");
+
+      newOrders(token);
+
+      if (parsedResponse["code"] == 200 ||
+          parsedResponse["code"] == 2 ||
+          parsedResponse["code"] == 1) {
+
+        connectedProvidersList.clear();
+
+        final details = parsedResponse["details"];
+
+        if (details is Map<String, dynamic>) {
+          for (var element in details.values) {
+            try {
+              connectedProvidersList
+                  .add(ProviderModel.fromJson(element));
+              debugPrint(
+                  "[connectedProviders] added successfully");
+            } catch (e) {
+              debugPrint(
+                  "[connectedProviders] parsing error: $e");
+            }
+          }
+        }
+
+        debugPrint(
+            "Total providers: ${connectedProvidersList.length}");
+
+        notifyToProvider();
+        return ResponseModel(true, parsedResponse["msg"]);
+      } else {
+        notifyToProvider();
+        return ResponseModel(false, parsedResponse["msg"]);
+      }
+    } else {
+      notifyToProvider();
+      return ResponseModel(false, "Something went wrong");
+    }
+  } catch (exception) {
+    debugPrint(
+        "[connectedProviders] exception: $exception");
+
+    notifyToProvider();
+    return ResponseModel(false, "Something went wrong");
+  }
+}
+
+Future<ResponseModel> providerStatus(String token,String intgId ,int status) async {
+  ResponseModel responseModel;
+  try {
+    ApiResponse apiResponse = await appRepo.providerStatus(token,intgId, status);
+    debugPrint("[providerStatus] response code is ${apiResponse.response!.statusCode}");
+
+    if (apiResponse.response != null && apiResponse.response!.statusCode == 200) {
+      var parsedResponse = jsonDecode(apiResponse.response!.body);
+      debugPrint("[providerStatus] parsed body is $parsedResponse");
+
+      var message = parsedResponse["msg"].toString();
+
+      if (parsedResponse["code"] == 200 || parsedResponse["code"] == 1 || parsedResponse["code"] == 2) {
+        responseModel = ResponseModel(true, message);
+        debugPrint("[providerStatus] Success: $message");
+
+      
+      } else {
+        debugPrint("[providerStatus] API error inside");
+        responseModel = ResponseModel(false, message);
+      }
+    } else {
+      debugPrint("[providerStatus] API error outside");
+      responseModel = ResponseModel(false, "Something went wrong");
+    }
+
+    notifyToProvider();
+    return responseModel;
+  } catch (exception) {
+    debugPrint("[providerStatus] Exception: $exception");
+    responseModel = ResponseModel(false, "Something went wrong");
+    notifyToProvider();
+    return responseModel;
+  }
+}
+Map<String, List<AddonItems>> groupAddonsByPortion(
+    List<AddonItems> addonItems) {
+
+  final Map<String, List<AddonItems>> grouped = {};
+
+  for (var item in addonItems) {
+
+    final id = item.pizzaPortionSectionId;
+
+    final key = (id != null && id.trim().isNotEmpty)
+        ? id.trim()
+        : "no_portion";
+
+    grouped.putIfAbsent(key, () => []);
+    grouped[key]!.add(item);
+  }
+
+  return grouped;
+}
+
+String getPortionName(String id) {
+  switch (id) {
+    case "1":
+      return "Whole Portion";
+    case "2":
+      return "Left Portion";
+    case "3":
+      return "Right Portion";
+    default:
+      return "";
+  }
+}
   progressReset(){
     progress = false;
     notifyListeners();

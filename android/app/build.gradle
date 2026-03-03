@@ -151,9 +151,9 @@ android {
         multiDexEnabled true
 
              ////   comment this code while app is in debug mode
-        ndk {
-           abiFilters "armeabi", "armeabi-v7a","arm64-v8a"
-       }
+    //     ndk {
+    //        abiFilters "armeabi", "armeabi-v7a","arm64-v8a"
+    //    }
       //// comment this code while app is in debug mode
     }
 
@@ -174,7 +174,7 @@ flutter {
 dependencies {
 
     implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
-    implementation fileTree("C:\\Users\\Mitanshi.Kashyap\\Downloads\\kitchen_order\\Kitchen-Order-main\\android\\app\\libs\\app-debug.aar")
+    // implementation fileTree("C:\\Users\\Mitanshi.Kashyap\\Downloads\\kitchen_order\\Kitchen-Order-main\\android\\app\\libs\\app-debug.aar")
       implementation 'me.carda:AndroidAwnCore:0.9.3'
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")

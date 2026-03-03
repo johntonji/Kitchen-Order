@@ -63,6 +63,35 @@ Future<ApiResponse> getMenuItems(String token) async {
   return apiResponse;
 }
 
+
+  /// update menu item availability
+  Future<ApiResponse> updateMenuTemAvailability(String token, String itemId, String available)async{
+    ApiResponse apiResponse;
+
+    // var data = jsonEncode({
+    //   "item_id" : itemId,
+    //   "available" : available
+    // });
+    var response = await http.get(Uri.parse("${IPConfigurations.updateMenuTemAvailability}?item_id=$itemId&available=$available"),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type':'application/json'
+        },
+    ).then((value) {
+      print("[updateMenuTemAvailability]  apiRepo then response is ${value.body}");
+      return value;
+    });
+    
+    print("[updateMenuTemAvailability]  apiRepo response is ${response.body}");
+    if(response.body.isNotEmpty){
+      apiResponse = ApiResponse(response,null,null);
+      return apiResponse;
+    }else{
+      apiResponse = ApiResponse.withError("Error");
+      print("[updateMenuTemAvailability]  apiRepo error is ${apiResponse.response!.body}");
+      return apiResponse;
+    }
+  }
   
   /// Terms and Conditions Fetching API
   Future<ApiResponse> termsAndConditions(String token)async{
@@ -140,10 +169,17 @@ Future<ApiResponse> getMenuItems(String token) async {
   }
 
   /// Accept Order API
-  Future<ApiResponse> acceptOrder(String token, String orderUUID, String date, String time)async{
+  Future<ApiResponse> acceptOrder(String token, String orderUUID, String date, String time,bool providerFlag,String? deliveryBy)async{
     ApiResponse apiResponse;
-    print("[acceptOrder] delivery time for $orderUUID is $time abd date is $date");
-    var data = jsonEncode({
+    print("[acceptOrder] delivery time for $orderUUID is $time abd date is $date ,providerFlag is $providerFlag ,deliveryBy is ${deliveryBy ?? ""}");
+    var data = (providerFlag==true)
+    ?  jsonEncode({
+      "order_uuid" : orderUUID,
+      "delivery_date" : date,
+      "delivery_time" : "$time:00",
+      "deliver_by:"  : deliveryBy
+    })
+    : jsonEncode({
       "order_uuid" : orderUUID,
       "delivery_date" : date,
       "delivery_time" : "$time:00"
@@ -669,7 +705,6 @@ Future<ApiResponse> updateOrderingStatusUnAval(
   }
 
 ////get notifications
-// menu fetching Api
 Future<ApiResponse> getNotifications(String token) async {
   ApiResponse apiResponse;
   try {
@@ -751,6 +786,47 @@ Future<ApiResponse> printStatusUpdate(
    });
 
     var response = await http.post(Uri.parse(IPConfigurations.printStatusUpdate),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+        body: data
+    );
+    if(response.body.isNotEmpty){
+      apiResponse = ApiResponse(response,null,null);
+      return apiResponse;
+    }else{
+      apiResponse = ApiResponse.withError("Error");
+      return apiResponse;
+    }
+}
+/// Ready Order Fetching API
+  Future<ApiResponse> connectedProviders(String token)async{
+    ApiResponse apiResponse;
+
+    var response = await http.get(Uri.parse(IPConfigurations.connectedProviders),
+        headers: {
+          'Authorization': 'Bearer $token',
+        }
+    );
+    if(response.body.isNotEmpty){
+      apiResponse = ApiResponse(response,null,null);
+      return apiResponse;
+    }else{
+      apiResponse = ApiResponse.withError("Error");
+      return apiResponse;
+    }
+  }
+
+   Future<ApiResponse> providerStatus(String token, String intgId, int status )async{
+    ApiResponse apiResponse;
+
+    var data = jsonEncode({
+      "integration_account_id" : intgId,
+      "status" : status,
+      "pause_duration" : null,
+    });
+
+    var response = await http.post(Uri.parse(IPConfigurations.cancelOrders),
         headers: {
           'Authorization': 'Bearer $token',
         },

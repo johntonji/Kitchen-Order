@@ -7,14 +7,26 @@ class Addons {
 
   Addons({this.subcatId, this.subcategoryName, this.addonItems});
 
+  // Addons.fromJson(Map<String, dynamic> json) {
+  //   subcatId = json['subcat_id'].toString();
+  //   subcategoryName = json['subcategory_name'].toString();
+  //   if (json['addon_items'] != null) {
+  //     addonItems = <AddonItems>[];
+  //     json['addon_items'].forEach((v) {
+  //       addonItems!.add(AddonItems.fromJson(v));
+  //     });
+  //   }
+  // }
   Addons.fromJson(Map<String, dynamic> json) {
-    subcatId = json['subcat_id'].toString();
-    subcategoryName = json['subcategory_name'].toString();
-    if (json['addon_items'] != null) {
-      addonItems = <AddonItems>[];
-      json['addon_items'].forEach((v) {
-        addonItems!.add(AddonItems.fromJson(v));
-      });
+  subcatId = json['subcat_id']?.toString();
+  subcategoryName = json['subcategory_name']?.toString();
+
+  var rawList = json['addon_items'];
+
+  if (rawList is List) {
+    addonItems = rawList.map((e) => AddonItems.fromJson(e)).toList();
+  } else {
+    addonItems = [];
     }
   }
 
@@ -30,55 +42,132 @@ class Addons {
 }
 
 class AddonItems {
-  String? subItemId;
+   String? itemRow;
+   String? multiOption;
+   int? subItemId;
+   String? subcatId;
   String? subItemName;
+   String? subcatName;
   String? itemDescription;
-  num? price;
-  String? prettyPrice;
-  String? urlImage;
   String? qty;
   num? addonsTotal;
   String? prettyAddonsTotal;
-  String? multiple;
+   num? price;
+   String? prettyPrice;
+   String? urlImage;
+   String? pizzaPortionTypeId;
+   String? pizzaPortionSectionId;
+   String? pizzaSizeName;
+   PortionModel? portion;
+   String? portionSection;
+    String? isSubModifier;
+   String? key;
 
-  AddonItems(
-      {this.subItemId,
+  AddonItems({
+     this.itemRow,
+     this.multiOption,
+     this.subItemId,
+     this.subcatId,
         this.subItemName,
+     this.subcatName,
         this.itemDescription,
-        this.price,
-        this.prettyPrice,
-        this.urlImage,
         this.qty,
         this.addonsTotal,
         this.prettyAddonsTotal,
-        this.multiple});
+     this.price,
+     this.prettyPrice,
+     this.urlImage,
+    this.pizzaPortionTypeId,
+    this.pizzaPortionSectionId,
+    this.pizzaSizeName,
+    this.portion,
+    this.portionSection,
+     this.isSubModifier,
+    this.key,
+  });
 
-  AddonItems.fromJson(Map<String, dynamic> json) {
-    subItemId =json['sub_item_id'].toString();
-    subItemName = json['sub_item_name'].toString();
-    itemDescription = json['item_description'].toString();
-    price = json['price'];
-    prettyPrice = json['pretty_price'].toString();
-    urlImage = json['url_image'].toString();
-    qty = json['qty'].toString();
-    addonsTotal = json['addons_total'];
-    prettyAddonsTotal = json['pretty_addons_total'].toString();
-    multiple = json['multiple'].toString();
+  factory AddonItems.fromJson(Map<String, dynamic> json) {
+    return AddonItems(
+      itemRow: json['item_row'] ?? '',
+      multiOption: json['multi_option'] ?? '',
+      subItemId: json['sub_item_id'] ?? 0,
+      subcatId: json['subcat_id'] ?? '',
+      subItemName: json['sub_item_name'] ?? '',
+      subcatName: json['subcat_name'] ?? '',
+      itemDescription: json['item_description'] ?? '',
+      qty: json['qty'] ?? '0',
+      addonsTotal: json['addons_total'] ?? 0,
+      prettyAddonsTotal: json['pretty_addons_total'] ?? '',
+      price: json['price'] ?? 0,
+      prettyPrice: json['pretty_price'] ?? '',
+      urlImage: json['url_image'] ?? '',
+      pizzaPortionTypeId: json['pizza_portion_type_id'],
+      pizzaPortionSectionId: json['pizza_portion_section_id'],
+      pizzaSizeName: json['pizza_size_name'],
+     portion: json['portion'] is Map<String, dynamic>
+    ? PortionModel.fromJson(json['portion'])
+    : null,
+      portionSection: json['portion_section'],
+      isSubModifier: json['is_sub_modifier'] ?? '0',
+      key: json['key'],
+    );
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = <String, dynamic>{};
-    data['sub_item_id'] = subItemId;
-    data['sub_item_name'] = subItemName;
-    data['item_description'] = itemDescription;
-    data['price'] = price;
-    data['pretty_price'] = prettyPrice;
-    data['url_image'] = urlImage;
-    data['qty'] = qty;
-    data['addons_total'] = addonsTotal;
-    data['pretty_addons_total'] = prettyAddonsTotal;
-    data['multiple'] = multiple;
-    return data;
+    return {
+      'item_row': itemRow,
+      'multi_option': multiOption,
+      'sub_item_id': subItemId,
+      'subcat_id': subcatId,
+      'sub_item_name': subItemName,
+      'subcat_name': subcatName,
+      'item_description': itemDescription,
+      'qty': qty,
+      'addons_total': addonsTotal,
+      'pretty_addons_total': prettyAddonsTotal,
+      'price': price,
+      'pretty_price': prettyPrice,
+      'url_image': urlImage,
+      'pizza_portion_type_id': pizzaPortionTypeId,
+      'pizza_portion_section_id': pizzaPortionSectionId,
+      'pizza_size_name': pizzaSizeName,
+      'portion': portion?.toJson(),
+      'portion_section': portionSection,
+      'is_sub_modifier': isSubModifier,
+      'key': key,
+    };
+  }
+}
+
+class PortionModel {
+  final String id;
+  final String name;
+  final String value;
+  final String type;
+
+  PortionModel({
+    required this.id,
+    required this.name,
+    required this.value,
+    required this.type,
+  });
+
+  factory PortionModel.fromJson(Map<String, dynamic> json) {
+    return PortionModel(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      value: json['value'] ?? '',
+      type: json['type'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'value': value,
+      'type': type,
+    };
   }
 }
 
@@ -115,7 +204,21 @@ class Tax {
   }
 }
 
+class ConnectedProvidersModel{
+ String? providerId;
+ String? integrationAccountId;
 
+ ConnectedProvidersModel({
+  required this.providerId,
+  required this.integrationAccountId
+ });
+
+ factory ConnectedProvidersModel.fromJson(Map<String, dynamic> json){
+  return ConnectedProvidersModel(
+    providerId: json['provider_id']?.toString() , 
+    integrationAccountId: json['integration_account_id']?.toString());
+ }
+}
 
 class OrderModel {
   final OrderData orderData;
@@ -125,6 +228,8 @@ class OrderModel {
   String? restaurantAddress;
   String? orderCompletionTime;
   List<AllTaxesUse> allTaxesUse;
+  int? kitchenhubConnection;
+  List<ConnectedProvidersModel>? connectedProvidersList;
 
   OrderModel({
     required this.orderData,
@@ -133,18 +238,45 @@ class OrderModel {
     required this.customer,
     this.restaurantAddress,
     this.orderCompletionTime,
-    required this.allTaxesUse
+    required this.allTaxesUse,
+    this.kitchenhubConnection,
+    this.connectedProvidersList
   });
 
+  // factory OrderModel.fromJson(Map<String, dynamic> json) {
+  //   return OrderModel(
+  //     orderData: OrderData.fromJson(json['order_data']),
+  //     tip: json['tip_amount'].toString() ,
+  //     items: (json['items'] as List).map((i) => Items.fromJson(i)).toList(),
+  //     customer: Customer.fromJson(json['customer']),
+  //     restaurantAddress:json['restaurant_address'].toString() ,
+  //     orderCompletionTime:json['order_completion_time'].toString() ,
+  //     allTaxesUse: (json['all_taxes_use'] as List).map((i) => AllTaxesUse.fromJson(i)).toList(),
+  //   );
+  // }
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     return OrderModel(
       orderData: OrderData.fromJson(json['order_data']),
-      tip: json['tip_amount'].toString() ,
-      items: (json['items'] as List).map((i) => Items.fromJson(i)).toList(),
+    tip: json['tip_amount']?.toString(),
+     kitchenhubConnection: json['kitchenhub_connection'] ?? 0,
+     items: (json['items'] is List)
+        ? (json['items'] as List)
+            .map((i) => Items.fromJson(i))
+            .toList()
+        : [],
+    connectedProvidersList: (json['connected_providers_list'] is List)
+        ? (json['connected_providers_list'] as List)
+            .map((i) => ConnectedProvidersModel.fromJson(i))
+            .toList()
+        : [],
       customer: Customer.fromJson(json['customer']),
-      restaurantAddress:json['restaurant_address'].toString() ,
-      orderCompletionTime:json['order_completion_time'].toString() ,
-      allTaxesUse: (json['all_taxes_use'] as List).map((i) => AllTaxesUse.fromJson(i)).toList(),
+    restaurantAddress: json['restaurant_address']?.toString(),
+    orderCompletionTime: json['order_completion_time']?.toString(),
+    allTaxesUse: (json['all_taxes_use'] is List)
+        ? (json['all_taxes_use'] as List)
+            .map((i) => AllTaxesUse.fromJson(i))
+            .toList()
+        : [],
     );
   }
 
@@ -162,6 +294,7 @@ class OrderModel {
     }
     data["restaurant_address"]=restaurantAddress;
     data["order_completion_time"]=orderCompletionTime;
+    data['kitchenhub_connection']=kitchenhubConnection ??0;
     if(allTaxesUse != null){
       data['all_taxes_use'] = allTaxesUse.map((v) => v.toJson()).toList();
     }
@@ -429,31 +562,31 @@ class Items {
 
   factory Items.fromJson(Map<String, dynamic> json) {
       List<Addons> addonsList = [];
-  if (json['addons'] != null) {
-    json['addons'].forEach((v) {
-      addonsList.add(Addons.fromJson(v));
-    });
+  if (json['addons'] is List) {
+    addonsList = (json['addons'] as List)
+        .map((v) => Addons.fromJson(v))
+        .toList();
   }
     
   List<Tax> taxList = [];
-  if (json['tax'] != null) {
-    json['tax'].forEach((v) {
-      taxList.add(Tax.fromJson(v));
-    });
+  if (json['tax'] is List) {
+    taxList = (json['tax'] as List)
+        .map((v) => Tax.fromJson(v))
+        .toList();
   }
 
     return Items(
-      itemRow: json['item_row'].toString() ?? '',
-      catId: json['cat_id'].toString() ?? '',
-      itemToken: json['item_token'].toString() ?? '',
-      itemName: json['item_name'].toString() ?? '',
-      itemChanges: json['item_changes'].toString() ?? '',
-     itemNameReplace : json['item_name_replace'].toString(),
-    specialInstructions : json['special_instructions'].toString(),
-    ifSoldOut : json['if_sold_out'].toString(),
-      urlImage: json['url_image'].toString() ?? '',
-      qty: json['qty'].toString(),
-      price: Price.fromJson(json['price']),
+    itemRow: json['item_row']?.toString() ?? '',
+    catId: json['cat_id']?.toString() ?? '',
+    itemToken: json['item_token']?.toString() ?? '',
+    itemName: json['item_name']?.toString() ?? '',
+    itemChanges: json['item_changes']?.toString() ?? '',
+    itemNameReplace: json['item_name_replace']?.toString(),
+    specialInstructions: json['special_instructions']?.toString(),
+    ifSoldOut: json['if_sold_out']?.toString(),
+    urlImage: json['url_image']?.toString() ?? '',
+    qty: json['qty']?.toString() ?? '',
+    price: Price.fromJson(json['price'] ?? {}),
       tax: taxList,
         addons: addonsList,
     );
@@ -516,18 +649,22 @@ class Price {
 
   factory Price.fromJson(Map<String, dynamic> json) {
     return Price(
-      itemSizeId: json['item_size_id'] ?? '',
-      price: json['price']?.toDouble() ?? 0.0,
-      sizeName : json['size_name'].toString(),
-      discount: json['discount']?.toDouble() ?? 0.0,
-       discountType : json['discount_type'].toString(),
-      priceAfterDiscount: json['price_after_discount']?.toDouble() ?? 0.0,
-      prettyPrice: json['pretty_price'] ?? '',
-          prettyPriceAfterDiscount : json['pretty_price_after_discount'].toString(),
-          total : json['total'].toDouble(),
-    prettyTotal : json['pretty_total'].toString(),
-    totalAfterDiscount : json['total_after_discount'].toDouble(),
-    prettyTotalAfterDiscount : json['pretty_total_after_discount'].toString()
+    itemSizeId: json['item_size_id']?.toString() ?? '',
+    price: (json['price'] as num?)?.toDouble() ?? 0.0,
+    sizeName: json['size_name']?.toString(),
+    discount: (json['discount'] as num?)?.toDouble() ?? 0.0,
+    discountType: json['discount_type']?.toString(),
+    priceAfterDiscount:
+        (json['price_after_discount'] as num?)?.toDouble() ?? 0.0,
+    prettyPrice: json['pretty_price']?.toString() ?? '',
+    prettyPriceAfterDiscount:
+        json['pretty_price_after_discount']?.toString(),
+    total: (json['total'] as num?)?.toDouble() ?? 0.0,
+    prettyTotal: json['pretty_total']?.toString(),
+    totalAfterDiscount:
+        (json['total_after_discount'] as num?)?.toDouble() ?? 0.0,
+    prettyTotalAfterDiscount:
+        json['pretty_total_after_discount']?.toString(),
     );
   }
 
@@ -773,7 +910,7 @@ class AllTaxesUse {
   String? taxRateType;
   String? taxType;
   String? taxAmountType;
-  double? taxRateCalculated;
+  String? taxRateCalculated;
 
   AllTaxesUse(
       {this.taxId,

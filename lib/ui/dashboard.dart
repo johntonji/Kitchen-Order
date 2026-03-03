@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:bugsnag_flutter/bugsnag_flutter.dart';
+// import 'package:bugsnag_flutter/bugsnag_flutter.dart';
 import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:flutter/material.dart';
@@ -48,6 +48,14 @@ class _DashboardState extends rv.ConsumerState<Dashboard> with WidgetsBindingObs
  int selectedBottom = 1; // made static
   UserModel userModel = UserModel.getInstance();
 
+
+  Timer? orderingTimer;
+Timer? pauseTimer;
+Timer? notificationTimer;
+Timer? autoOrdersTimer;
+Timer? autoProcessingTimer;
+Timer? autoReadyTimer;
+
  int delayTime=0;
   bool _availableCheck = true;
   bool _unavailableCheck = false;
@@ -92,182 +100,216 @@ class _DashboardState extends rv.ConsumerState<Dashboard> with WidgetsBindingObs
   return '$convhrs: $convMin hours';
   }
 }
-  getData2() async{
-     SharedPreferenceManager.getInstance().getUserData().then((data) {
-      userModel = data;
-      debugPrint("merchant address is ${data.address} and id is ${data.merchantId} and logo is ${data.logo}");
-      Provider.of<AppProvider>(context, listen: false).newOrders(data.authToken!).then((value) {
-        Provider.of<AppProvider>(context, listen: false).processingOrders(data.authToken!).then((value) {
-          Provider.of<AppProvider>(context, listen: false).readyOrders(data.authToken!).then((value) {
-            // timer = Timer.periodic(const Duration(seconds: 9), (Timer t) => Provider.of<AppProvider>(context, listen: false).autoNewOrders(data.authToken!,context));
-            timer = Timer.periodic(const Duration(seconds: 8), (Timer t) => Provider.of<AppProvider>(context, listen: false).autoProcessingOrders(data.authToken!));
-            timer = Timer.periodic(const Duration(seconds: 8), (Timer t) => Provider.of<AppProvider>(context, listen: false).autoReadyOrders(data.authToken!));
-          });
-        });
-      });
-          Provider.of<AppProvider>(context, listen: false).getNotifications(data.authToken!);
-          Provider.of<AppProvider>(context, listen: false).getPrinters(data.authToken!,data.merchantId!);
-          Provider.of<AppProvider>(context,listen: false).getdefaultPrinter(data.authToken!,data.merchantId!,"kitchen");
-          Provider.of<AppProvider>(context,listen: false).getdefaultPrinter(data.authToken!,data.merchantId!,"client");
-          Provider.of<AppProvider>(context,listen: false).menu(data.authToken!);
-          Provider.of<AppProvider>(context, listen: false).termsAndConditions(data.authToken!);
-          Provider.of<AppProvider>(context, listen: false).getPauseStatusData(data.authToken!,data.merchantId!);  ///////// getstatus
-          Provider.of<AppProvider>(context, listen: false).getTimezone(data.authToken!,data.merchantId!);   // timezone
-          Provider.of<AppProvider>(context, listen: false).getOrderingStatus(data.authToken!,data.merchantId!,context)
-          .then((onValue)
-          {
-            if(mounted){
-           setState(() {
-              AppProvider.availabilityStatus=onValue;
-            });
-            }
-          
-          debugPrint("ordering status is ${AppProvider.availabilityStatus}");
-          if(AppProvider.availabilityStatus==false){
-          debugPrint("inside get ordering status 0");
-            if(mounted){
 
-            setState(() {
-            _availableCheck=true;
-            _unavailableCheck=false;
-            _customCheck=false;
-            });
-            }
-           }
-          else if(AppProvider.availabilityStatus==true) {
-          debugPrint("inside get ordering status 1");
-            if(mounted){
-          setState(() {
-            _unavailableCheck=true;
-            _availableCheck=false;
-            _customCheck=false;
-             });
-            }
-            }
-           });
-      
-           //status metadata
-        Provider.of<AppProvider>(context, listen: false).getPauseStatusData(data.authToken!,data.merchantId!)
-        .then((val)
-         {
-          if(AppProvider.availabilityStatus==true){
-            if(AppProvider.pauseTime!=AppProvider.modifiedAtTime && AppProvider.pauseTime.isNotEmpty){
-              debugPrint(" IF AppProvider.pauseTime is ${AppProvider.pauseTime}  and AppProvider.modifiedAtTime is ${AppProvider.modifiedAtTime}");
-            if(mounted){
-            
-             setState(() {
-            _unavailableCheck=false;
-            _availableCheck=false;
-            _customCheck=true;
-             });
-            }
-             }else{
-              debugPrint(" ELSE AppProvider.pauseTime is ${AppProvider.pauseTime}  and AppProvider.modifiedAtTime is ${AppProvider.modifiedAtTime}");
-            if(mounted){
-          
-            setState(() {
-            _unavailableCheck=true;
-            _availableCheck=false;
-            _customCheck=false;
-             });
-            }
-             }
-           debugPrint("inside get ordering status 1");
-            }
-          });
-        // //// timers
-         timer = Timer.periodic(const Duration(seconds: 15), (Timer t) =>Provider.of<AppProvider>(context, listen: false).getOrderingStatus(data.authToken!,data.merchantId!,context).then((onValue){
-            if(mounted){
-         
-         setState(() {
-              AppProvider.availabilityStatus=onValue;
-            });
-            }
-          debugPrint(" ordering status $onValue");
-          if(AppProvider.availabilityStatus==false){
-          debugPrint("inside get ordering status 0");
-           
-            if(mounted){
-            setState(() {
-            _availableCheck=true;
-            _unavailableCheck=false;
-            _customCheck=false;
-            });
-            }
-           }
-          else
-           if(AppProvider.availabilityStatus==true)
-           {
-            if(mounted){
-          setState(() {
-            _unavailableCheck=true;
-            _availableCheck=false;
-            _customCheck=false;
-             });
-            }
-            }
-           }));
+void startTimers(String token, String merchantId) {
 
-           timer = Timer.periodic(const Duration(seconds: 3), (Timer t) => Provider.of<AppProvider>(context, listen: false).getPauseStatusData(data.authToken!,data.merchantId!).then((val){
-          if(AppProvider.availabilityStatus==true){
-            if(AppProvider.pauseTime!=AppProvider.modifiedAtTime  && AppProvider.pauseTime.isNotEmpty){
-              // debugPrint(" IF AppProvider.pauseTime is ${AppProvider.pauseTime}  and AppProvider.modifiedAtTime is ${AppProvider.modifiedAtTime}");
-            if(mounted){
-             setState(() {
-            _unavailableCheck=false;
-            _availableCheck=false;
-            _customCheck=true;
+  orderingTimer?.cancel();
+  pauseTimer?.cancel();
+  notificationTimer?.cancel();
+  autoOrdersTimer?.cancel();
+  autoProcessingTimer?.cancel();
+  autoReadyTimer?.cancel();
 
-             });
-            }
-             }else{
-              // debugPrint(" ELSE AppProvider.pauseTime is ${AppProvider.pauseTime}  and AppProvider.modifiedAtTime is ${AppProvider.modifiedAtTime}");
-            if(mounted){
-          setState(() {
-            _unavailableCheck=true;
-            _availableCheck=false;
-            _customCheck=false;
-             });
-            }
-            }
-          // debugPrint("inside get ordering status 1");
-          }
-        }) 
-        );
-         timer2= Timer.periodic(const Duration(seconds: 10), (Timer t) =>Provider.of<AppProvider>(context, listen: false).getNotifications(data.authToken!));
-       });
+  orderingTimer = Timer.periodic(
+    const Duration(seconds: 15),
+    (_) => Provider.of<AppProvider>(context, listen: false)
+        .getOrderingStatus(token, merchantId, context),
+  );
+
+  pauseTimer = Timer.periodic(
+    const Duration(seconds: 3),
+    (_) => Provider.of<AppProvider>(context, listen: false)
+        .getPauseStatusData(token, merchantId),
+  );
+
+  notificationTimer = Timer.periodic(
+    const Duration(seconds: 10),
+    (_) => Provider.of<AppProvider>(context, listen: false)
+        .getNotifications(token),
+  );
+  autoOrdersTimer = Timer.periodic(
+    const Duration(seconds: 6),
+    (_) => Provider.of<AppProvider>(context, listen: false)
+        .autoNewOrders(token,context)
+  );
+  autoProcessingTimer = Timer.periodic(
+    const Duration(seconds: 8),
+    (_) => Provider.of<AppProvider>(context, listen: false)
+        .autoProcessingOrders(token),
+  );
+
+  autoReadyTimer = Timer.periodic(
+    const Duration(seconds: 8),
+    (_) => Provider.of<AppProvider>(context, listen: false)
+        .autoReadyOrders(token),
+  );
+}
+
+
+
+  // getData2() async{
+  //    SharedPreferenceManager.getInstance().getUserData().then((data) {
+  //     userModel = data;
+  //     debugPrint("merchant address is ${data.address} and id is ${data.merchantId} and logo is ${data.logo}");
+  //     Provider.of<AppProvider>(context, listen: false).newOrders(data.authToken!).then((value) {
+  //       Provider.of<AppProvider>(context, listen: false).processingOrders(data.authToken!).then((value) {
+  //         Provider.of<AppProvider>(context, listen: false).readyOrders(data.authToken!).then((value) {
+  //           // timer = Timer.periodic(const Duration(seconds: 9), (Timer t) => Provider.of<AppProvider>(context, listen: false).autoNewOrders(data.authToken!,context));
+  //           timer = Timer.periodic(const Duration(seconds: 8), (Timer t) => Provider.of<AppProvider>(context, listen: false).autoProcessingOrders(data.authToken!));
+  //           timer = Timer.periodic(const Duration(seconds: 8), (Timer t) => Provider.of<AppProvider>(context, listen: false).autoReadyOrders(data.authToken!));
+  //         });
+  //       });
+  //     });
+  //         Provider.of<AppProvider>(context, listen: false).getNotifications(data.authToken!);
+  //         Provider.of<AppProvider>(context, listen: false).getPrinters(data.authToken!,data.merchantId!);
+  //         Provider.of<AppProvider>(context,listen: false).getdefaultPrinter(data.authToken!,data.merchantId!,"kitchen");
+  //         Provider.of<AppProvider>(context,listen: false).getdefaultPrinter(data.authToken!,data.merchantId!,"client");
+  //         Provider.of<AppProvider>(context,listen: false).menu(data.authToken!);
+  //         Provider.of<AppProvider>(context,listen: false).connectedProviders(data.authToken!);
+  //         Provider.of<AppProvider>(context, listen: false).termsAndConditions(data.authToken!);
+  //         Provider.of<AppProvider>(context, listen: false).getPauseStatusData(data.authToken!,data.merchantId!);  ///////// getstatus
+  //         Provider.of<AppProvider>(context, listen: false).getTimezone(data.authToken!,data.merchantId!);   // timezone
+  //         Provider.of<AppProvider>(context, listen: false).getOrderingStatus(data.authToken!,data.merchantId!,context)
+  //         .then((onValue)
+  //         {
+  //           if(mounted){
+  //          setState(() {
+  //             AppProvider.availabilityStatus=onValue;
+  //           });
+  //           }        
+  //         debugPrint("ordering status is ${AppProvider.availabilityStatus}");
+  //         if(AppProvider.availabilityStatus==false){
+  //         debugPrint("inside get ordering status 0");
+  //           if(mounted){
+  //           setState(() {
+  //           _availableCheck=true;
+  //           _unavailableCheck=false;
+  //           _customCheck=false;
+  //           });
+  //           }
+  //          }
+  //         else if(AppProvider.availabilityStatus==true) {
+  //         debugPrint("inside get ordering status 1");
+  //           if(mounted){
+  //         setState(() {
+  //           _unavailableCheck=true;
+  //           _availableCheck=false;
+  //           _customCheck=false;
+  //            });
+  //           }
+  //           }
+  //          });     
+  //          //status metadata
+  //       Provider.of<AppProvider>(context, listen: false).getPauseStatusData(data.authToken!,data.merchantId!)
+  //       .then((val)
+  //        {
+  //         if(AppProvider.availabilityStatus==true){
+  //           if(AppProvider.pauseTime!=AppProvider.modifiedAtTime && AppProvider.pauseTime.isNotEmpty){
+  //             debugPrint(" IF AppProvider.pauseTime is ${AppProvider.pauseTime}  and AppProvider.modifiedAtTime is ${AppProvider.modifiedAtTime}");
+  //           if(mounted){         
+  //            setState(() {
+  //           _unavailableCheck=false;
+  //           _availableCheck=false;
+  //           _customCheck=true;
+  //            });
+  //           }
+  //            }else{
+  //             debugPrint(" ELSE AppProvider.pauseTime is ${AppProvider.pauseTime}  and AppProvider.modifiedAtTime is ${AppProvider.modifiedAtTime}");
+  //           if(mounted){
+  //           setState(() {
+  //           _unavailableCheck=true;
+  //           _availableCheck=false;
+  //           _customCheck=false;
+  //            });
+  //           }
+  //            }
+  //          debugPrint("inside get ordering status 1");
+  //           }
+  //         });
+  //       // //// timers
+  //        timer = Timer.periodic(const Duration(seconds: 15), (Timer t) =>Provider.of<AppProvider>(context, listen: false).getOrderingStatus(data.authToken!,data.merchantId!,context).then((onValue){
+  //           if(mounted){
+  //        setState(() {
+  //             AppProvider.availabilityStatus=onValue;
+  //           });
+  //           }
+  //         debugPrint(" ordering status $onValue");
+  //         if(AppProvider.availabilityStatus==false){
+  //         debugPrint("inside get ordering status 0");
+  //           if(mounted){
+  //           setState(() {
+  //           _availableCheck=true;
+  //           _unavailableCheck=false;
+  //           _customCheck=false;
+  //           });
+  //           }
+  //          }
+  //         else
+  //          if(AppProvider.availabilityStatus==true)
+  //          {
+  //           if(mounted){
+  //         setState(() {
+  //           _unavailableCheck=true;
+  //           _availableCheck=false;
+  //           _customCheck=false;
+  //            });
+  //           }
+  //           }
+  //          }));
+  //          timer = Timer.periodic(const Duration(seconds: 3), (Timer t) => Provider.of<AppProvider>(context, listen: false).getPauseStatusData(data.authToken!,data.merchantId!).then((val){
+  //         if(AppProvider.availabilityStatus==true){
+  //           if(AppProvider.pauseTime!=AppProvider.modifiedAtTime  && AppProvider.pauseTime.isNotEmpty){
+  //             // debugPrint(" IF AppProvider.pauseTime is ${AppProvider.pauseTime}  and AppProvider.modifiedAtTime is ${AppProvider.modifiedAtTime}");
+  //           if(mounted){
+  //            setState(() {
+  //           _unavailableCheck=false;
+  //           _availableCheck=false;
+  //           _customCheck=true;
+  //            });
+  //           }
+  //            }else{
+  //             // debugPrint(" ELSE AppProvider.pauseTime is ${AppProvider.pauseTime}  and AppProvider.modifiedAtTime is ${AppProvider.modifiedAtTime}");
+  //           if(mounted){
+  //         setState(() {
+  //           _unavailableCheck=true;
+  //           _availableCheck=false;
+  //           _customCheck=false;
+  //            });
+  //           }
+  //           }
+  //         // debugPrint("inside get ordering status 1");
+  //         }
+  //       }) 
+  //       );
+  //        timer2= Timer.periodic(const Duration(seconds: 10), (Timer t) =>Provider.of<AppProvider>(context, listen: false).getNotifications(data.authToken!));
+  //      });
   
      
-      }
+  //     }
 
+Future<void> getData() async {
+  final data = await SharedPreferenceManager.getInstance().getUserData();
+    AppProvider.ordercancelletionTimer= data.merchantOrderRejectMins ?? 0;
+  if (!mounted) return;
 
-  getData() async{
-   SharedPreferenceManager.getInstance().getAlertDuration().then((duration){
-     AppProvider.alertDuration=duration;
-    });
-    SharedPreferenceManager.getInstance().getUserData().then((data) {
       userModel = data;
-      debugPrint("merchant address is ${data.address} and id is ${data.merchantId} and logo is ${data.logo}");
-      Provider.of<AppProvider>(context, listen: false).newOrders(data.authToken!).then((value) {
-        Provider.of<AppProvider>(context, listen: false).processingOrders(data.authToken!).then((value) {
-          Provider.of<AppProvider>(context, listen: false).readyOrders(data.authToken!).then((value) {
-            timer = Timer.periodic(const Duration(seconds: 6), (Timer t) => Provider.of<AppProvider>(context, listen: false).autoNewOrders(data.authToken!,context));
-            timer = Timer.periodic(const Duration(seconds: 8), (Timer t) => Provider.of<AppProvider>(context, listen: false).autoProcessingOrders(data.authToken!));
-            timer = Timer.periodic(const Duration(seconds: 8), (Timer t) => Provider.of<AppProvider>(context, listen: false).autoReadyOrders(data.authToken!));
-            timer = Timer.periodic(const Duration(seconds: 8), (Timer t) => SharedPreferenceManager.getInstance().printListsValues());
-          
-          });
-        });
-      });
-          
-          Provider.of<AppProvider>(context, listen: false).getNotifications(data.authToken!);
-          Provider.of<AppProvider>(context, listen: false).getPrinters(data.authToken!,data.merchantId!);
-          Provider.of<AppProvider>(context,listen: false).getdefaultPrinter(data.authToken!,data.merchantId!,"kitchen");
-          Provider.of<AppProvider>(context,listen: false).getdefaultPrinter(data.authToken!,data.merchantId!,"client");
-          Provider.of<AppProvider>(context,listen: false).menu(data.authToken!);
-          Provider.of<AppProvider>(context, listen: false).termsAndConditions(data.authToken!);
-          Provider.of<AppProvider>(context, listen: false).getPauseStatusData(data.authToken!,data.merchantId!);  ///////// getstatus
-          Provider.of<AppProvider>(context, listen: false).getTimezone(data.authToken!,data.merchantId!);   // timezone
+
+  final provider = Provider.of<AppProvider>(context, listen: false);
+
+  await provider.newOrders(data.authToken!);
+  await provider.processingOrders(data.authToken!);
+  await provider.readyOrders(data.authToken!);
+
+  provider.getNotifications(data.authToken!);
+  provider.getPrinters(data.authToken!, data.merchantId!);
+  provider.menu(data.authToken!);
+  provider.connectedProviders(data.authToken!);
+  provider.termsAndConditions(data.authToken!);
+  provider.getTimezone(data.authToken!, data.merchantId!);
+
+  startTimers(data.authToken!, data.merchantId!);
+
+  /////
           Provider.of<AppProvider>(context, listen: false).getOrderingStatus(data.authToken!,data.merchantId!,context)
           .then((onValue)
           {
@@ -407,10 +449,26 @@ class _DashboardState extends rv.ConsumerState<Dashboard> with WidgetsBindingObs
         }) 
         );
          timer2= Timer.periodic(const Duration(seconds: 10), (Timer t) =>Provider.of<AppProvider>(context, listen: false).getNotifications(data.authToken!));
-       });
+       
   
-     
-      }
+}
+
+@override
+void dispose() {
+  orderingTimer?.cancel();
+  pauseTimer?.cancel();
+  notificationTimer?.cancel();
+  autoOrdersTimer?.cancel();
+  autoProcessingTimer?.cancel();
+  autoReadyTimer?.cancel();
+  timer?.cancel();
+  timer2?.cancel();
+  WidgetsBinding.instance.removeObserver(this);
+  super.dispose();
+}
+
+  
+
 /////// autoPrint
  Map<String,dynamic> kitchenData={};
  String kitchenReceiptPath = "";
@@ -794,7 +852,7 @@ Future<void> autoPrintKitchen(OrderModel autoOrderData) async {
          Scaffold(
         body: RefreshIndicator(
           onRefresh: () {  
-           return getData2();
+           return getData();
           },
           child: Container(
             width: MediaQuery.of(context).size.width,
@@ -889,7 +947,8 @@ Future<void> autoPrintKitchen(OrderModel autoOrderData) async {
                   ),
                 ),
                 Visibility(
-                  visible: _availableCheck && selectedBottom == 1,
+                  visible:  selectedBottom == 1,
+                  // _availableCheck && selectedBottom == 1,
                   child: Container(
                     width: MediaQuery.of(context).size.width,
                     height: 46,
@@ -984,12 +1043,13 @@ Future<void> autoPrintKitchen(OrderModel autoOrderData) async {
                   ),
                 ),
                 Expanded(
-                  child: _availableCheck && selectedBottom == 1 ?
+                  child:selectedBottom == 1 ?
+                  //  _availableCheck && selectedBottom == 1 ?
                   tabs[AppProvider.selectedTab] :
                   selectedBottom == 2 ?
                   const Settings() :
-                  selectedBottom == 0 ?
-                  const AllOrders():
+                  // selectedBottom == 0 ?
+                  // const AllOrders():
                   const FirstBottomTab() 
           
                 ),
@@ -1008,34 +1068,34 @@ Future<void> autoPrintKitchen(OrderModel autoOrderData) async {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: (){
-                    setState(() {
-                      selectedBottom = 0;
-                    });
-                  },
-                  child: Center(
-                    child: Stack(
-                      children: [
-                        selectedBottom  == 0 ? Container(
-                          width: 70,
-                          height: 70,
-                          decoration: BoxDecoration(
-                              color: AppAssets.whiteColor,
-                              borderRadius: BorderRadius.circular(40),
-                              boxShadow: [
-                                BoxShadow(color: AppAssets.widgetGrayColor.withOpacity(0.4), blurRadius: 10)
-                              ]
-                          ),
-                          child: Center(child: Icon(MdiIcons.clockOutline, size: 36, color: AppAssets.primaryColor,)),
-                        ) : SizedBox(width: 70,
-                            height: 70, child: Center(child: Icon(MdiIcons.clockOutline, size: 36, color: AppAssets.textLightGrayColor,))),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              // Expanded(
+              //   child: GestureDetector(
+              //     onTap: (){
+              //       setState(() {
+              //         selectedBottom = 0;
+              //       });
+              //     },
+              //     child: Center(
+              //       child: Stack(
+              //         children: [
+              //           selectedBottom  == 0 ? Container(
+              //             width: 70,
+              //             height: 70,
+              //             decoration: BoxDecoration(
+              //                 color: AppAssets.whiteColor,
+              //                 borderRadius: BorderRadius.circular(40),
+              //                 boxShadow: [
+              //                   BoxShadow(color: AppAssets.widgetGrayColor.withOpacity(0.4), blurRadius: 10)
+              //                 ]
+              //             ),
+              //             child: Center(child: Icon(MdiIcons.clockOutline, size: 36, color: AppAssets.primaryColor,)),
+              //           ) : SizedBox(width: 70,
+              //               height: 70, child: Center(child: Icon(MdiIcons.clockOutline, size: 36, color: AppAssets.textLightGrayColor,))),
+              //         ],
+              //       ),
+              //     ),
+              //   ),
+              // ),
 
               Expanded(
                 child: GestureDetector(

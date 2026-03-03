@@ -31,6 +31,10 @@ class _SettingsState extends State<Settings> {
   @override
   void initState() {
     super.initState();
+    SharedPreferenceManager.getInstance().getAuthToken().then((token) {
+      Provider.of<AppProvider>(context,listen: false).menu(token);
+       Provider.of<AppProvider>(context,listen: false).connectedProviders(token);
+    });
     getData();
     if(sec==0){
       ismute=true;
@@ -111,7 +115,7 @@ class _SettingsState extends State<Settings> {
                                   children: [
                                     Padding(
                                       padding: const EdgeInsets.symmetric(horizontal: AppAssets.dimen_12),
-                                      child: Text("CATEGORIES", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 13, color: AppAssets.textLightGrayColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                      child: Text((provider.restrauntMenu.isEmpty)? "NO ITEM AVAILABLE":"CATEGORIES", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 13, color: AppAssets.textLightGrayColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
                                     ),
                                     const SizedBox(height: 6),
                                     ListView.builder(
@@ -138,8 +142,7 @@ class _SettingsState extends State<Settings> {
                                                       
                                                       ],
                                                     )
-                                                : 
-                                                 Expandable(
+                                                : Expandable(
                                                   collapsed: ExpandableButton(
                                                     child: Row(
                                                       children: [
@@ -183,6 +186,8 @@ class _SettingsState extends State<Settings> {
                                                                             shrinkWrap: true,
                                                                             physics: const NeverScrollableScrollPhysics(),
                                                                             itemBuilder: (context, index) {
+                                                                              bool? isAvailable;
+                                                                              isAvailable = categoryItem.available == "1";
                                                                               var categoryItem = category.menus![index];
                                                                               return Container(
                                                                                   margin: const EdgeInsets.only(
@@ -200,22 +205,74 @@ class _SettingsState extends State<Settings> {
                                                                                                 categoryItem.itemName!,
                                                                                                 style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: AppAssets.dimen_14),
                                                                                                 overflow: TextOverflow.ellipsis,
-                                                                                                maxLines: 1, // Ensures single-line truncation
+                                                                                                maxLines: 2, // Ensures single-line truncation
+                                                                                              ),
+                                                                                            ),
+                                                                                           SizedBox(
+                                                                                            height: 30,
+                                                                                              child: Transform.scale(
+                                                                                                scale: 0.7, 
+                                                                                                 child:Switch(
+                                                                                                 activeColor: AppAssets.greenColor,
+                                                                                                 value: isAvailable ?? false,
+                                                                                                 onChanged: (bool value) async {
+                                                                                                   setState(() {
+                                                                                                     isAvailable = value;
+                                                                                                   });
+                                                                                               
+                                                                                                   showDialog(
+                                                                                                     context: context,
+                                                                                                     barrierDismissible: false,
+                                                                                                     builder: (_) => AlertDialog(
+                                                                                                      backgroundColor: Colors.transparent,
+                                                                                                     
+                                                                                                       content: SizedBox(
+                                                                                                         height: 50,
+                                                                                                         child: Center(child: CircularProgressIndicator(color: AppAssets.purpleColor,)),
+                                                                                                       ),
+                                                                                                     ),
+                                                                                                   );
+                                                                                              
+                                                                                                   try {
+                                                                                                     final token =
+                                                                                                         await SharedPreferenceManager.getInstance().getAuthToken();
+                                                                                               
+                                                                                                     final response = await provider.updateMenuItemAvailability(
+                                                                                                       token,
+                                                                                                       categoryItem.itemId!,
+                                                                                                       (value==true)? "1" : "0",
+                                                                                                     );
+                                                                                              
+                                                                                                     Navigator.pop(context);
+                                                                                              
+                                                                                                     if (response.isSuccess) {
+                                                                                                       // update model AFTER success
+                                                                                                       categoryItem.available = value ? "1" : "0";
+                                                                                                     } else {
+                                                                                                       setState(() => isAvailable = !value);
+                                                                                                     }
+                                                                                                   } catch (e) {
+                                                                                                     Navigator.pop(context);
+                                                                                                     setState(() => isAvailable = !value);
+                                                                                                   }
+                                                                                                 },
+                                                                                               )
+                                                                                              
                                                                                               ),
                                                                                             ),
                                                                                             Container(
-                                                                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                                                                              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
                                                                                               margin: const EdgeInsets.symmetric(horizontal: 6),
                                                                                               decoration: BoxDecoration(
-                                                                                                color: AppAssets.successColor.withOpacity(0.2),
+                                                                                                color: (categoryItem.available =="1") ? AppAssets.successColor.withOpacity(0.2) : AppAssets.failureColor.withOpacity(0.2),
                                                                                                 borderRadius: BorderRadius.circular(20),
                                                                                               ),
                                                                                               child: Text(
-                                                                                                (categoryItem.notForSale == false) ? "Available" : "Unavailable",
+                                                                                                (categoryItem.available =="1") ? "Available" : "Unavailable",
                                                                                                 style: TextStyle(
                                                                                                   fontFamily: AppAssets.nunitoBold,
                                                                                                   fontSize: 10,
-                                                                                                  color: (categoryItem.notForSale == false) ? AppAssets.successColor : AppAssets.failureColor,
+                                                                                                  color: (categoryItem.available =="1") ? AppAssets.successColor : AppAssets.failureColor,
                                                                                                 ),
                                                                                                 maxLines: 1,
                                                                                                 overflow: TextOverflow.ellipsis,

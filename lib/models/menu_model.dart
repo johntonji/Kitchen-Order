@@ -360,12 +360,12 @@ class Price {
 	// int? priceAfterDiscount;
 	String?prettyPrice;
 	String?prettyPriceAfterDiscount;
-	bool?pointsEnabled;
+	// bool?pointsEnabled;
 	// int? earningPoints;
-	String?earningPointsLabel;
+	// String?earningPointsLabel;
 	String?itemId;
 	String?available;
-	List<Addons>? addons;
+	// List<Addons>? addons;
 
   Price(
       {
@@ -379,12 +379,13 @@ class Price {
       // this.priceAfterDiscount,
       this.prettyPrice,
       this.prettyPriceAfterDiscount,
-      this.pointsEnabled,
+      // this.pointsEnabled,
       // this.earningPoints,
-      this.earningPointsLabel,
+      // this.earningPointsLabel,
       this.itemId,
       this.available,
-      this.addons});
+      // this.addons
+      });
 
 	Price.fromJson(Map<String, dynamic> json) {
 		// key = json['key'];
@@ -397,15 +398,15 @@ class Price {
 		// priceAfterDiscount = json['price_after_discount'];
 		prettyPrice = json['pretty_price'];
 		prettyPriceAfterDiscount = json['pretty_price_after_discount'];
-		pointsEnabled = json['points_enabled'];
+		// pointsEnabled = json['points_enabled'];
 		// earningPoints = json['earning_points'];
-		earningPointsLabel = json['earning_points_label'];
+		// earningPointsLabel = json['earning_points_label'];
 		itemId = json['item_id'];
 		available = json['available'];
-		if (json['addons'] != String) {
-			addons = [];
-			json['addons'].forEach((v) { addons!.add(Addons.fromJson(v)); });
-		}
+		// if (json['addons'] != String) {
+		// 	addons = [];
+		// 	json['addons'].forEach((v) { addons!.add(Addons.fromJson(v)); });
+		// }
 	}
 
 	Map<String, dynamic> toJson() {
@@ -420,14 +421,14 @@ class Price {
 		// data['price_after_discount'] = priceAfterDiscount;
 		data['pretty_price'] = prettyPrice;
 		data['pretty_price_after_discount'] = prettyPriceAfterDiscount;
-		data['points_enabled'] = pointsEnabled;
+		// data['points_enabled'] = pointsEnabled;
 		// data['earning_points'] = earningPoints;
-		data['earning_points_label'] = earningPointsLabel;
+		// data['earning_points_label'] = earningPointsLabel;
 		data['item_id'] = itemId;
 		data['available'] = available;
-		if (addons != null) {
-      data['addons'] = addons!.map((v) => v.toJson()).toList();
-    }
+		// if (addons != null) {
+    //   data['addons'] = addons!.map((v) => v.toJson()).toList();
+    // }
 		return data;
 	}
 }

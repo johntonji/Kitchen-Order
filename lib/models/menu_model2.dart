@@ -68,6 +68,7 @@ class Menu {
   String? merchantId;
   String? itemId;
   String? itemToken;
+  String? available;
   String? parentId;
   String? catId;
   String? itemName;
@@ -91,6 +92,7 @@ class Menu {
       {this.merchantId,
       this.itemId,
       this.itemToken,
+      this.available,
       this.parentId,
       this.catId,
       this.itemName,
@@ -102,7 +104,7 @@ class Menu {
       this.cookingRefRequired,
        this.ingredientsPreselected
        , this.notForSale
-  // , this.price,
+  // , this.price
    , this.subItems 
    , this.haveSubItems, 
   //  this.sequence, 
@@ -114,6 +116,7 @@ class Menu {
     merchantId = json['merchant_id'];
     itemId = json['item_id'];
     itemToken = json['item_token'];
+    available = json['available'];
     parentId = json['parent_id'];
     catId = json['cat_id'];
     itemName = json['item_name'];
@@ -145,6 +148,7 @@ class Menu {
     data['merchant_id'] = merchantId;
     data['item_id'] = itemId;
     data['item_token'] = itemToken;
+    data['available'] = available;
     data['parent_id'] = parentId;
     data['cat_id'] = catId;
     data['item_name'] = itemName;

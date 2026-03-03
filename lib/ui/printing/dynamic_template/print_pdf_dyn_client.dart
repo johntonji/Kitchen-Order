@@ -52,12 +52,26 @@ String formatAcceptanceTime(String inputDateTime) {
   return formattedDate;
 }
 
-  String formatDateTime2(String inputDateTime) {
-  DateTime dateTime = DateTime.parse(inputDateTime);
-  String formattedDate = DateFormat("MMMM d yyyy 'at' hh:mm a").format(dateTime);
-  return formattedDate;
-}
+//   String formatDateTime2(String inputDateTime) {
+//   DateTime dateTime = DateTime.parse(inputDateTime);
+//   String formattedDate = DateFormat("MMMM d yyyy 'at' hh:mm a").format(dateTime);
+//   return formattedDate;
+// }
+String formatDateTime2(String? inputDateTime) {
+  if (inputDateTime == null ||
+      inputDateTime.isEmpty ||
+      inputDateTime == "null") {
+    return "";
+  }
 
+  try {
+    DateTime dateTime = DateTime.parse(inputDateTime);
+    return DateFormat("MMMM d yyyy 'at' hh:mm a")
+        .format(dateTime);
+  } catch (e) {
+    return "";
+  }
+}
   String formatDate(String inputDateTime) {
   DateTime dateTime = DateTime.parse(inputDateTime);
   String formattedDate = DateFormat("MMMM d").format(dateTime);
@@ -113,6 +127,17 @@ int timeToMinutes(String time) {
 }
 
 
+// String formatAddress(String address) {
+//   List<String> parts = address.split(', ');
+
+//   if (parts.length < 3) return address; // Return as-is if it's too short
+
+//   String line1 = parts.take(2).join(', '); 
+//   String line2 = parts.skip(2).take(2).join(', '); 
+//   String line3 = parts.skip(4).join(', ');
+
+//   return "$line1\n$line2\n$line3";
+// }
 String formatAddress(String address) {
   List<String> parts = address.split(', ').map((p) => p.trim()).toList();
 
@@ -121,13 +146,14 @@ String formatAddress(String address) {
   // Always remove the last part (assumed to be country)
   parts.removeLast();
 
-  String line1 = parts.take(2).join(', '); 
-  String line2 = parts.skip(2).take(2).join(', '); 
+  String line1 = parts.take(2).join(', ');
+  String line2 = parts.skip(2).take(2).join(', ');
   String line3 = parts.skip(4).join(', ');
 
   // Remove empty lines if any
   return [line1, line2, line3].where((line) => line.isNotEmpty).join('\n');
 }
+
 
 String PlaceName(String address) {
   List<String> parts = address.split(', ');
@@ -532,15 +558,29 @@ Future<String> dynClientPdfGenerate(
                           return pw.Column(
                               crossAxisAlignment: pw.CrossAxisAlignment.start,
                               children: [
+                                SizedBox(height: 10),
                                 pw.Row(
                                   mainAxisAlignment:
                                       pw.MainAxisAlignment.spaceBetween,
                                   children: [
-                                    pw.Text(
-                                        "${orderModal.items[index].qty}X ${orderModal.items[index].itemName}",
+                                    Column(
+                                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                      children:[
+                                         pw.Text(
+                                        "${orderModal.items[index].qty}X ${normalizeText(orderModal.items[index].itemName)}",
                                         style: pw.TextStyle(
                                             fontSize: itemsModel.itemsSize!
                                                 .toDouble())),
+                                          
+                                          if(orderModal.items[index].price.sizeName!=null && orderModal.items[index].price.sizeName!="")
+                                                 pw.Text(
+                                        "(${normalizeText(orderModal.items[index].price.sizeName!)})",
+                                        style: pw.TextStyle(
+                                            fontSize: itemsModel.itemsSize!
+                                                .toDouble())),
+                                      ]
+                                      ),
+                                   
                                     pw.Text(
                                         '\$${formatToTwoDecimals(orderModal.items[index].price.total)}',
                                         style: pw.TextStyle(
@@ -558,71 +598,159 @@ Future<String> dynClientPdfGenerate(
                                     List<String> subItems = [];
                                     for (AddonItems subItemName
                                         in addons.addonItems!) {
-                                      subItems.add(subItemName.subItemName!);
+                                      subItems.add(normalizeText(subItemName.subItemName!));
                                     }
                                     return  
-                                    Column(
+                                     Column(
                                       mainAxisSize: MainAxisSize.min,
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                       if(addons.subcategoryName!=null && addons.subcategoryName!="")
                                        if(itemsModel.showAddonNames==true)
-                                       pw.Text('- ${addons.subcategoryName}',
+                                       if(addons.addonItems!=null && addons.addonItems!.isNotEmpty)
+                                       if(addons.addonItems![0].pizzaPortionSectionId==null || addons.addonItems![0].pizzaPortionSectionId=="")
+                                       pw.Text('   - ${normalizeText(addons.subcategoryName!)}',
                                             style: pw.TextStyle(
                                                 fontSize: itemsModel
                                                     .choicAddonSize!
                                                     .toDouble(),
                                                 fontItalic:
                                                     Font.timesItalic())),
-                                       ListView(
-                                      children :  List.generate(
-                                          addons.addonItems!
-                                              .length, (i) {
-                                   final itemAddonItem = addons.addonItems![i];
-                                   return  pw.Row(children: [
-                                    (!itemAddonItem.subItemName!.contains(":"))
-                                    ? Text("  * ")
-                                    : Text(" "),
-                                      // if (itemsModel.showAddonNames == true)
-                                        // pw.Text('${addons.subcategoryName}:',
-                                        //     style: pw.TextStyle(
-                                        //         fontSize: itemsModel
-                                        //             .choicAddonSize!
-                                        //             .toDouble(),
-                                        //         fontItalic:
-                                        //             Font.timesItalic())),
-                                      pw.Text(
-                                          itemAddonItem.subItemName!,
-                                          style: pw.TextStyle(
-                                              fontSize: itemsModel
-                                                  .itemCommentSize!
-                                                  .toDouble(),
-                                              fontItalic: Font.timesItalic())),
-                                      if (itemAddonItem.price != null)
-                                      Spacer(),
-                                        if (itemsModel.showAddonFees == true)
-                                          (
-                                            itemAddonItem.price!.isNegative == true)
-                                              ? pw.Text(
-                                                  '\$${formatToTwoDecimals(itemAddonItem.price!.toDouble())}',
-                                                  style: pw.TextStyle(
-                                                      fontSize: itemsModel
-                                                          .itemCommentSize!
-                                                          .toDouble(),
-                                                      fontItalic:
-                                                          Font.timesItalic()))
-                                              : pw.Text(
-                                                  '\$${formatToTwoDecimals(itemAddonItem.price!.toDouble())}',
-                                                  style: pw.TextStyle(
-                                                      fontSize: itemsModel
-                                                          .itemCommentSize!
-                                                          .toDouble(),
-                                                      fontItalic:
-                                                          Font.timesItalic()))
-                                    ]);
+                                                    ListView(
+  children: groupAddonsByPortion(addons.addonItems!).entries.map((entry) {
+    final portionId = entry.key;
+    final items = entry.value;
+
+    String portionTitle = "";
+
+    if (portionId == "1") {
+      portionTitle = "   - Whole Portion";
+    } else if (portionId == "2") {
+      portionTitle = "   - Left Portion";
+    } else if (portionId == "3") {
+      portionTitle = "   - Right Portion";
+    }
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+
+        ///  Print Portion Title Only Once
+        if (portionId != "no_portion")
+          pw.Text(
+            portionTitle,
+            style: pw.TextStyle(
+              fontSize: itemsModel.itemCommentSize!.toDouble(),
+              fontItalic: Font.timesItalic(),
+            ),
+          ),
+
+        ///  Print Items Under That Portion
+        ...items.map((itemAddonItem) {
+          return pw.Row(
+            children: [
+
+              pw.Text("      ${normalizeText(itemAddonItem.subItemName!)}",
+                  style: pw.TextStyle(
+                    fontSize: itemsModel.itemCommentSize!.toDouble(),
+                    fontItalic: Font.timesItalic(),
+                  )),
+
+              if (itemsModel.showAddonFees == true) pw.Spacer(),
+
+              if (itemsModel.showAddonFees == true &&
+                  itemAddonItem.price != null)
+                pw.Text(
+                  '\$${formatToTwoDecimals(itemAddonItem.price!.toDouble())}',
+                  style: pw.TextStyle(
+                    fontSize: itemsModel.itemCommentSize!.toDouble(),
+                    fontItalic: Font.timesItalic(),
+                  ),
+                ),
+            ],
+          );
+        }).toList(),
+      ],
+    );
+  }).toList(),
+)
+                                  //      ListView(
+                                  //     children :  List.generate(
+                                  //         addons.addonItems!
+                                  //             .length, (j) {
+                                  
+                                  //  final itemAddonItem = addons.addonItems![j];
+                                  //  return  pw.Row(children: [
+                                  //   (!itemAddonItem.subItemName!.contains(":"))
+                                  //      ? (itemAddonItem.pizzaPortionSectionId!=null && itemAddonItem.pizzaPortionSectionId!="")
+                                  //   ? Text("   ")
+                                  //   : Text("     * ")
+                                  //   : Text("    "),
+                                  //     // if (itemsModel.showAddonNames == true)
+                                  //       // pw.Text('${addons.subcategoryName}:',
+                                  //       //     style: pw.TextStyle(
+                                  //       //         fontSize: itemsModel
+                                  //       //             .choicAddonSize!
+                                  //       //             .toDouble(),
+                                  //       //         fontItalic:
+                                  //       //             Font.timesItalic())),
+                                  //       (itemAddonItem.pizzaPortionSectionId!=null && itemAddonItem.pizzaPortionSectionId!="")
+                                  //     ? pw.Column(
+                                  //       crossAxisAlignment: CrossAxisAlignment.start,
+                                  //       children: [
+                                  //         pw.Text(
+                                  //        (itemAddonItem.pizzaPortionSectionId=="1")
+                                  //        ? "   - Whole Portion"
+                                  //        :(itemAddonItem.pizzaPortionSectionId=="2")
+                                  //        ? "   - Left Portion"
+                                  //        : "   - Right Portion"
+                                  //         ,
+                                  //         style: pw.TextStyle(
+                                  //             fontSize: itemsModel
+                                  //                 .itemCommentSize!
+                                  //                 .toDouble(),
+                                  //             fontItalic: Font.timesItalic())),
+                                  //             pw.Text(
+                                  //         "   ${normalizeText(itemAddonItem.subItemName!)}",
+                                  //         style: pw.TextStyle(
+                                  //             fontSize: itemsModel
+                                  //                 .itemCommentSize!
+                                  //                 .toDouble(),
+                                  //             fontItalic: Font.timesItalic()))
+                                  //       ]
+                                  //     )
+                                  //     : pw.Text(
+                                  //         normalizeText(itemAddonItem.subItemName!),
+                                  //         style: pw.TextStyle(
+                                  //             fontSize: itemsModel
+                                  //                 .itemCommentSize!
+                                  //                 .toDouble(),
+                                  //             fontItalic: Font.timesItalic())),
+                                  //     if (itemAddonItem.price != null)
+                                  //     Spacer(),
+                                  //       if (itemsModel.showAddonFees == true)
+                                  //         (
+                                  //           itemAddonItem.price!.isNegative == true)
+                                  //             ? pw.Text(
+                                  //                 '\$${formatToTwoDecimals(itemAddonItem.price!.toDouble())}',
+                                  //                 style: pw.TextStyle(
+                                  //                     fontSize: itemsModel
+                                  //                         .itemCommentSize!
+                                  //                         .toDouble(),
+                                  //                     fontItalic:
+                                  //                         Font.timesItalic()))
+                                  //             : pw.Text(
+                                  //                 '\$${formatToTwoDecimals(itemAddonItem.price!.toDouble())}',
+                                  //                 style: pw.TextStyle(
+                                  //                     fontSize: itemsModel
+                                  //                         .itemCommentSize!
+                                  //                         .toDouble(),
+                                  //                     fontItalic:
+                                  //                         Font.timesItalic()))
+                                  //   ]);
                                     
-                                     })
-                                  )
+                                  //    })
+                                  // )
                                  
                                       ]
                                     );
@@ -674,7 +802,7 @@ Future<String> dynClientPdfGenerate(
                           final taxItem=orderModal.allTaxesUse[index];
                            return Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
+                              children: [
                                Text( 
                                 // (order.orderData.taxType!=null) ?'${order.orderData.taxType!} tax':
                                   (taxItem.taxName!.isNotEmpty) 
@@ -957,3 +1085,42 @@ String replaceEscapedNewlines(String input) {
   return input.replaceAll(r'\n', '\n');
 }
 
+String normalizeText(String text) {
+  return text
+      .replaceAll(RegExp(r"[’‘]"), "'")
+      .replaceAll(RegExp(r'[“”]'), '"')
+      .replaceAll('،', ',')   // Arabic comma
+      .replaceAll('，', ',')  // Full-width comma
+      .replaceAll('\u00A0', ' '); // Non-breaking space
+}
+
+Map<String, List<AddonItems>> groupAddonsByPortion(
+    List<AddonItems> addonItems) {
+
+  final Map<String, List<AddonItems>> tempMap = {};
+
+  for (var item in addonItems) {
+    final key = (item.pizzaPortionSectionId != null &&
+            item.pizzaPortionSectionId!.isNotEmpty)
+        ? item.pizzaPortionSectionId!
+        : "no_portion";
+
+    tempMap.putIfAbsent(key, () => []);
+    tempMap[key]!.add(item);
+  }
+
+  /// Sort Keys
+  final sortedKeys = tempMap.keys.toList()
+    ..sort((a, b) {
+      if (a == "no_portion") return 1;
+      if (b == "no_portion") return -1;
+      return int.tryParse(a)?.compareTo(int.tryParse(b) ?? 0) ?? 0;
+    });
+
+  final Map<String, List<AddonItems>> sortedMap = {};
+  for (var key in sortedKeys) {
+    sortedMap[key] = tempMap[key]!;
+  }
+
+  return sortedMap;
+}

@@ -1,6 +1,7 @@
 import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:order_receiving/main.dart';
 import 'package:order_receiving/models/order_model.dart';
 import 'package:order_receiving/ui/printing/dynamic_template/print_pdf_dyn_client.dart';
 import 'package:provider/provider.dart';
@@ -236,90 +237,197 @@ class _ReadyTabState extends State<ReadyTab> {
                             Expanded(child: Align(alignment: Alignment.center, child: Text("Price", style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis,))),
                           ],
                         ),
-                        ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: order.items.length,
-                            itemBuilder: (context, index) {
-                              final item = order.items[index];
-                               List<Addons> addonItemLocal=[];
-                              if(item.addons!=null){
-                                addonItemLocal=item.addons!;
-                              }
-                              return Column(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          flex: 3,
-                                          child: Align(alignment: Alignment.centerLeft, child: Text(item.itemName, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(child: Align(alignment: Alignment.center, child: Text(item.qty, style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,))),
-                                        const SizedBox(width: 10),
-                                        Expanded(child: Align(alignment: Alignment.center, child: Text("\$ ${formatToTwoDecimals(item.price.total)}", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,))),
-                                      ],
-                                    ),
-                                  ),
-
-                                  Visibility(
-                                    visible: addonItemLocal.isNotEmpty,
-                                    child: Column(
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              flex: 3,
-                                              child: Text("ADD ONS", style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 11, color: AppAssets.widgetGrayColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                      ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: order.items.length,
+                              itemBuilder: (context, index) {
+                                final item = order.items[index];
+                                List<Addons> addonItemLocal=[];
+                                if(item.addons!=null){
+                                  addonItemLocal=item.addons!;
+                                }
+                                return Column(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            flex: 3,
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Align(alignment: Alignment.centerLeft, child: Text(item.itemName, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                                if(item.price.sizeName!=null && item.price.sizeName!="")
+                                                Align(alignment: Alignment.centerLeft, child: Text("(${item.price.sizeName!})", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                              ],
                                             ),
-                                            const SizedBox(width: 10),
-                                            Expanded(child: Align(alignment: Alignment.center, child: Text("", style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis,))),
-                                            const SizedBox(width: 10),
-                                            Expanded(child: Align(alignment: Alignment.center, child: Text("", style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis,))),
-                                          ],
-                                        ),
-                                        ListView.builder(
-                                            shrinkWrap: true,
-                                            physics: const NeverScrollableScrollPhysics(),
-                                            itemCount: addonItemLocal.length,
-                                            itemBuilder: (context, index) {
-                                              final itemAddon = addonItemLocal[index];
-                                              return Padding(
-                                                padding: const EdgeInsets.only(top: 8.0),
-                                                child: ListView.builder(
-                                                    shrinkWrap: true,
-                                                    physics: const NeverScrollableScrollPhysics(),
-                                                    itemCount: itemAddon.addonItems!.length,
-                                                    itemBuilder: (context, index) {
-                                                      final itemAddonItem = itemAddon.addonItems![index];
-                                                      return Row(
-                                                        children: [
-                                                          Expanded(
-                                                            flex: 3,
-                                                            child: Align(alignment: Alignment.centerLeft, child: Text("${itemAddonItem.subItemName}", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
-                                                          ),
-                                                          const SizedBox(width: 10),
-                                                          Expanded(child: Align(alignment: Alignment.center, child: Text("${itemAddonItem.qty}", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,))),
-                                                          const SizedBox(width: 10),
-                                                          Expanded(child: Align(alignment: Alignment.center, child: Text("${formatToTwoDecimals(itemAddonItem.prettyAddonsTotal)}", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,))),
-                                                        ],
-                                                      );
-                                                    }),
-                                              );
-                                            }),
-                                        const SizedBox(height: 8.0),
-                                      ],
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(child: Align(alignment: Alignment.center, child: Text(item.qty, style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,))),
+                                          const SizedBox(width: 10),
+                                          Expanded(child: Align(alignment: Alignment.center, child: Text("\$ ${formatToTwoDecimals(item.price.total)}", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,))),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  Divider(
-                                    height: 1,
-                                    color: AppAssets.widgetGrayColor.withOpacity(0.2),
-                                  ),
-                                ],
-                              );
-                            }),
+                                    Visibility(
+                                      visible: addonItemLocal.isNotEmpty,
+                                      child: Column(
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                flex: 3,
+                                                child: Text("ADD ONS", style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 11, color: AppAssets.widgetGrayColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Expanded(child: Align(alignment: Alignment.center, child: Text("", style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis,))),
+                                              const SizedBox(width: 10),
+                                              Expanded(child: Align(alignment: Alignment.center, child: Text("", style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis,))),
+                                            ],
+                                          ),
+                                        
+                                        ListView.builder(
+  shrinkWrap: true,
+  physics: const NeverScrollableScrollPhysics(),
+  itemCount: addonItemLocal.length,
+  itemBuilder: (context, index) {
+
+    final itemAddon = addonItemLocal[index];
+
+    final groupedAddons =
+        provider.groupAddonsByPortion(itemAddon.addonItems ?? []);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: groupedAddons.entries.map((entry) {
+
+          final portionId = entry.key;
+          final items = entry.value;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+
+              ///  Show Portion Title
+              if (portionId != "no_portion")
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    provider.getPortionName(portionId),
+                    style: TextStyle(
+                      fontFamily: AppAssets.nunitoRegular,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+
+              ///  Show Items Under Portion
+              ...items.map((itemAddonItem) {
+                return Row(
+                  children: [
+
+                     Expanded(
+                      flex: 3,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: 
+                        ( portionId != "no_portion")
+                        ? Text(
+                             " -${itemAddonItem.subItemName}",
+                          style: TextStyle(
+                            fontFamily: AppAssets.nunitoRegular,
+                            fontSize: 10,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                         )
+                        : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                             Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                             itemAddonItem.subcatName ?? "",
+                              style: TextStyle(
+                             fontFamily: AppAssets.nunitoRegular,
+                               fontSize: 10,
+                             ),
+                          ),
+                          
+                         ),
+                         Text(
+                             " -${itemAddonItem.subItemName}",
+                          style: TextStyle(
+                            fontFamily: AppAssets.nunitoRegular,
+                            fontSize: 10,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                         )
+                          ],)
+                      ),
+                    ),
+
+                 
+
+                    const SizedBox(width: 10),
+
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                          "${itemAddonItem.qty}",
+                          style: TextStyle(
+                            fontFamily: AppAssets.nunitoMedium,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 10),
+
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                          itemAddonItem.prettyAddonsTotal ?? "",
+                          style: TextStyle(
+                            fontFamily: AppAssets.nunitoMedium,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+
+              const SizedBox(height: 6),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  },
+),
+                                       
+                                          const SizedBox(height: 8.0),
+                                        ],
+                                      ),
+                                    ),
+                                    Divider(
+                                      height: 1,
+                                      color: AppAssets.widgetGrayColor.withOpacity(0.2),
+                                    ),
+                                  ],
+                                );
+                              }),
+                         
                         const SizedBox(height: 10),
                            if((order.tip!=null && order.tip!="" && order.tip!="0"))
                             Row(
@@ -339,20 +447,20 @@ class _ReadyTabState extends State<ReadyTab> {
                         itemBuilder: (BuildContext context, int index) {
                           final taxItem=order.allTaxesUse[index];
                            return Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                           Text( 
-                            // (order.orderData.taxType!=null) ?'${order.orderData.taxType!} tax':
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                               Text( 
+                                // (order.orderData.taxType!=null) ?'${order.orderData.taxType!} tax':
                                   (taxItem.taxName!.isNotEmpty) 
                                   ? taxItem.taxName!
                                   : "Tax",
-                               style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14, color: AppAssets.widgetGrayColor),),
+                                   style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14, color: AppAssets.widgetGrayColor),),
                                    Text((taxItem.taxRateCalculated!=null) ?'\$ ${double.parse(taxItem.taxRateCalculated!.toString()).toStringAsFixed(2)}' : '\$ 0.00',
-                                 style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14), ),
-                          ],
+                                   style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14), ),
+                              ],
                             );
                          }
-                        ),
+                       ),
                         Row(
                           children: [
                             Expanded(
