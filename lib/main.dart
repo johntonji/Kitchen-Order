@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -12,11 +14,12 @@ import 'package:order_receiving/repositories/app_repo.dart';
 import 'package:order_receiving/ui/dashboard.dart';
 import 'package:order_receiving/ui/login.dart';
 import 'package:order_receiving/utilities/shares_pref_manager.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:just_audio/just_audio.dart';
-
+import 'package:android_id/android_id.dart';
 import 'package:bugsnag_flutter/bugsnag_flutter.dart';
 import 'assets/app_assets.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -150,8 +153,37 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+  //  Future.microtask((){
+  //   getDeviceSerial().then((serialNo){
+  //     Provider.of<AppProvider>(context, listen: false).getEsperDeviceId(serialNo!,context);
+  //   });
+  //  });
+    getCurrentAppVersion();  
     _navigateToNextScreen();
   }
+
+// Future<String?> getDeviceSerial() async {
+//   const _androidIdPlugin = AndroidId();
+//   final String? androidId = await _androidIdPlugin.getId();
+//       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("[getDeviceSerial]1 decice id is ${androidId ?? "null"}")));
+//   // Note: This is NOT the hardware serial, but a unique ID for this app/device.
+//   return androidId; 
+// }
+  Future<String?> getDeviceSerial() async {
+  DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+  if (Platform.isAndroid) {
+    AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+    print("Device Serial Number: ${androidInfo.serialNumber}");
+    // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("[getDeviceSerial]1 decice id is ${androidInfo.serialNumber}")));
+    return androidInfo.serialNumber; // This is the hardware serial Esper uses
+  }
+  return null;
+}
+    getCurrentAppVersion() async{
+      PackageInfo packageInfo = await PackageInfo.fromPlatform();
+      AppProvider.currentAppVersion = packageInfo.version;
+      print("current app version is ${AppProvider.currentAppVersion}");
+    }
 
   _navigateToNextScreen() async{
     await Future.delayed(const Duration(milliseconds: 3000), () {

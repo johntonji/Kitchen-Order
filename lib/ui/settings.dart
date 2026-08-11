@@ -2,6 +2,7 @@ import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:order_receiving/generated/l10n.dart';
 import 'package:order_receiving/models/menu_model2.dart';
 import 'package:order_receiving/models/user_model.dart';
 import 'package:order_receiving/ui/printer/auto_print_orders.dart';
@@ -9,6 +10,7 @@ import 'package:order_receiving/ui/profile.dart';
 import 'package:order_receiving/ui/reciept/print_template_list.dart';
 import 'package:order_receiving/ui/terms_conditions.dart';
 import 'package:order_receiving/utilities/shares_pref_manager.dart';
+import 'package:order_receiving/utilities/utility_class.dart';
 import 'package:provider/provider.dart';
 
 import '../assets/app_assets.dart';
@@ -27,6 +29,8 @@ class _SettingsState extends State<Settings> {
   int sec = AppProvider.alertDuration;
   UserModel userModel = UserModel.getInstance();
   bool ismute=false;///
+  bool printClient=false;
+  bool printKitchen=false;
 
   @override
   void initState() {
@@ -36,6 +40,12 @@ class _SettingsState extends State<Settings> {
        Provider.of<AppProvider>(context,listen: false).connectedProviders(token);
     });
     getData();
+    SharedPreferenceManager.getInstance().getClientPrintingStatus().then((value) {
+      printClient = value;
+    });
+    SharedPreferenceManager.getInstance().getKitchenPrintingStatus().then((value) {
+      printKitchen = value;
+    });
     if(sec==0){
       ismute=true;
     }
@@ -45,7 +55,6 @@ class _SettingsState extends State<Settings> {
     SharedPreferenceManager.getInstance().getUserData().then((value) {
       userModel = value;
     });
-
   }
 
   @override
@@ -187,8 +196,8 @@ class _SettingsState extends State<Settings> {
                                                                             physics: const NeverScrollableScrollPhysics(),
                                                                             itemBuilder: (context, index) {
                                                                               bool? isAvailable;
-                                                                              isAvailable = categoryItem.available == "1";
                                                                               var categoryItem = category.menus![index];
+                                                                              isAvailable = categoryItem.available == "1";
                                                                               return Container(
                                                                                   margin: const EdgeInsets.only(
                                                                                     top: 10,
@@ -258,7 +267,7 @@ class _SettingsState extends State<Settings> {
                                                                                                  },
                                                                                                )
                                                                                               
-                                                                                              ),
+                                                                                               ),
                                                                                             ),
                                                                                             Container(
                                                                                               padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
@@ -392,6 +401,7 @@ class _SettingsState extends State<Settings> {
                         ],
                       ),
                     ),
+                    
                     const SizedBox(height: 10),
                     Divider(
                       height: 1,
@@ -401,6 +411,7 @@ class _SettingsState extends State<Settings> {
                 ),
               ),
             ),
+            
             const SizedBox(height: 20,),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -450,6 +461,365 @@ class _SettingsState extends State<Settings> {
               ),
             ),
             const SizedBox(height: 10),
+
+            ////Select Receipt to print
+              Container(
+              margin: const EdgeInsets.only(left: 20, right: 20, top: 10),
+              color: const Color(0xFFF5F5F5),
+              padding: const EdgeInsets.symmetric(horizontal: AppAssets.dimen_12),
+              child: ExpandableNotifier(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expandable(
+                      collapsed: ExpandableButton(
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: AppAssets.tabBackgroundColor,
+                              radius: 22,
+                              child: Icon(MdiIcons.receiptOutline, color: AppAssets.textNormalGrayColor, size: 20,),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text("Select Receipt to print", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: AppAssets.dimen_16), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                            ),
+                            const SizedBox(width: 12,),
+                            Icon(MdiIcons.plus, color: AppAssets.textDarkGrayColor, size: 20,),
+                          ],
+                        ),
+                      ),
+
+                      expanded: Column(
+                        children: [
+                          ExpandableButton(
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  backgroundColor: AppAssets.tabBackgroundColor,
+                                  radius: 22,
+                                  child: Icon(MdiIcons.receiptOutline, color: AppAssets.textNormalGrayColor, size: 20,),),
+                                const SizedBox(width: 12,),
+                                Expanded(
+                                  child: Text("Select Receipt to print", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: AppAssets.dimen_16), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                ),
+                                const SizedBox(width: 12,),
+                                Icon(MdiIcons.minus, color: AppAssets.textDarkGrayColor, size: 20,),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                 Row(
+                                                                                          children: [
+                                                                                            Expanded(
+                                                                                              // Prevents overflow
+                                                                                              child: Text(
+                                                                                                "Client Receipt",
+                                                                                                style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: AppAssets.dimen_14),
+                                                                                                overflow: TextOverflow.ellipsis,
+                                                                                                maxLines: 2, // Ensures single-line truncation
+                                                                                              ),
+                                                                                            ),
+                                                                                           SizedBox(
+                                                                                            height: 30,
+                                                                                              child: Transform.scale(
+                                                                                                scale: 0.7, 
+                                                                                                 child:Switch(
+                                                                                                 activeColor: AppAssets.greenColor,
+                                                                                                 value: printClient,
+                                                                                                 onChanged: (bool value) async {
+                                                                                                 
+                                                                                                 
+                                                                                                   showDialog(
+                                                                                                     context: context,
+                                                                                                     barrierDismissible: false,
+                                                                                                     builder: (_) => AlertDialog(
+                                                                                                      backgroundColor: Colors.transparent,
+                                                                                                       content: SizedBox(
+                                                                                                         height: 50,
+                                                                                                         child: Center(child: CircularProgressIndicator(color: AppAssets.purpleColor,)),
+                                                                                                       ),
+                                                                                                     ),
+                                                                                                   );
+                                                                                                    SharedPreferenceManager.getInstance().toggleClientPrinting(value).then((onValue){
+                                                                                                    setState(() {
+                                                                                                     printClient = value;
+                                                                                                   });
+                                                                                                   Navigator.pop(context);
+                                                                                               
+                                                                                                    });
+                                                                                                 },
+                                                                                               )
+                                                                                              
+                                                                                               ),
+                                                                                            ),
+                                                                                           
+                                                                                          ],
+                                                                                        ),
+                                                                                        const SizedBox(height: 4),
+                                  
+                                Row(
+                                                                                          children: [
+                                                                                            Expanded(
+                                                                                              // Prevents overflow
+                                                                                              child: Text(
+                                                                                                "Kitchen Receipt",
+                                                                                                style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: AppAssets.dimen_14),
+                                                                                                overflow: TextOverflow.ellipsis,
+                                                                                                maxLines: 2, // Ensures single-line truncation
+                                                                                              ),
+                                                                                            ),
+                                                                                           SizedBox(
+                                                                                            height: 30,
+                                                                                              child: Transform.scale(
+                                                                                                scale: 0.7, 
+                                                                                                 child:Switch(
+                                                                                                 activeColor: AppAssets.greenColor,
+                                                                                                 value: printKitchen,
+                                                                                                 onChanged: (bool value) async {
+                                                                                                 
+                                                                                                     showDialog(
+                                                                                                     context: context,
+                                                                                                     barrierDismissible: false,
+                                                                                                     builder: (_) => AlertDialog(
+                                                                                                      backgroundColor: Colors.transparent,
+                                                                                                       content: SizedBox(
+                                                                                                         height: 50,
+                                                                                                         child: Center(child: CircularProgressIndicator(color: AppAssets.purpleColor,)),
+                                                                                                       ),
+                                                                                                     ),
+                                                                                                   );
+                                                                                                  SharedPreferenceManager.getInstance().toggleKitchenPrinting(value).then((v){
+                                                                                                     setState(() {
+                                                                                                     printKitchen = value;
+                                                                                                   });
+                                                                                                    Navigator.pop(context);
+                                                                                                  });
+
+                                                                                                 },
+                                                                                               )
+                                                                                              
+                                                                                               ),
+                                                                                            ),
+                                                                                           
+                                                                                          ],
+                                                                                        )
+                                 
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          // const SizedBox(height: 10),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 10),
+                    Divider(
+                      height: 1,
+                      color: AppAssets.widgetGrayColor.withOpacity(0.3),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+           
+            /////////
+//             ExpandableNotifier(
+//   child: Container(
+//     margin: const EdgeInsets.symmetric(vertical: 10,horizontal: 30),
+//     child: Column(
+//       children: [
+//         Expandable(
+//           collapsed: ExpandableButton(
+//             child: Row(
+//     children: [
+//       CircleAvatar(
+//         backgroundColor: AppAssets.tabBackgroundColor,
+//         radius: 22,
+//         child:Icon(MdiIcons.apps, color: AppAssets.textNormalGrayColor, size: 20,),
+//       ),
+//       const SizedBox(width: 12),
+//       Expanded(
+//         child: Text(
+//           "Connected Providers",
+//           style: TextStyle(
+//             fontFamily: AppAssets.nunitoMedium,
+//             fontSize: AppAssets.dimen_16,
+//           ),
+//           maxLines: 1,
+//           overflow: TextOverflow.ellipsis,
+//         ),
+//       ),
+//       const SizedBox(width: 12),
+//       Icon(
+//          MdiIcons.plus,
+//         color: AppAssets.textDarkGrayColor,
+//         size: 20,
+//       ),
+//     ],
+//   ),
+//           ),
+//           expanded: Column(
+//             children: [
+//               ExpandableButton(
+//                 child: Row(
+//     children: [
+//       CircleAvatar(
+//         backgroundColor: AppAssets.tabBackgroundColor,
+//         radius: 22,
+//         child: Icon(MdiIcons.apps, color: AppAssets.textNormalGrayColor, size: 20,),
+//       ),
+//       const SizedBox(width: 12),
+//       Expanded(
+//         child: Text(
+//           "Connected Providers",
+//           style: TextStyle(
+//             fontFamily: AppAssets.nunitoMedium,
+//             fontSize: AppAssets.dimen_16,
+//           ),
+//           maxLines: 1,
+//           overflow: TextOverflow.ellipsis,
+//         ),
+//       ),
+//       const SizedBox(width: 12),
+//       Icon(
+//         MdiIcons.minus ,
+//         color: AppAssets.textDarkGrayColor,
+//         size: 20,
+//       ),
+//     ],
+//   ),
+//               ),
+//               const SizedBox(height: 10),
+//              ListView.builder(
+//     itemCount: provider.connectedProvidersList.length,
+//     shrinkWrap: true,
+//     physics: const NeverScrollableScrollPhysics(),
+//     itemBuilder: (context, index) {
+//       final foodProvider = provider.connectedProvidersList[index];
+//       if (foodProvider.status != "connected" || foodProvider.status!.isEmpty) {
+//         return const SizedBox();
+//       }  
+//       bool isConnected = foodProvider.onlineStatus == "online";
+//       return Container(
+//         margin: const EdgeInsets.only(top: 10),
+//         padding: const EdgeInsets.symmetric(
+//           horizontal: AppAssets.dimen_12,
+//         ),
+//         color: const Color(0xFFF5F5F5),
+//         child: Row(
+//           children: [
+//             Expanded(
+//               child: Text(
+//                 foodProvider.providerId!,
+//                 style: TextStyle(
+//                   fontFamily: AppAssets.nunitoMedium,
+//                   fontSize: AppAssets.dimen_14,
+//                 ),
+//                 maxLines: 2,
+//                 overflow: TextOverflow.ellipsis,
+//               ),
+//             ),
+//             SizedBox(
+//               height: 30,
+//               child: Transform.scale(
+//                 scale: 0.7,
+//                 child: Switch(
+//                   activeColor: AppAssets.greenColor,
+//                   value: isConnected,
+//                   onChanged: (value) async {
+//                      setState(() {
+//                       isConnected= value;
+//                   foodProvider.onlineStatus = value ? "online" : "paused";
+//                 });
+//   showDialog(
+//     context: context,
+//     barrierDismissible: false,
+//     builder: (_) => AlertDialog(
+//       backgroundColor: Colors.transparent,
+//       content: SizedBox(
+//         height: 50,
+//         child: Center(
+//           child: CircularProgressIndicator(
+//             color: AppAssets.purpleColor,
+//           ),
+//         ),
+//       ),
+//     ),
+//   );
+//   try {
+//     final token = await SharedPreferenceManager
+//         .getInstance()
+//         .getAuthToken();
+//     final response =
+//         await provider.providerStatus(
+//       token,
+//      foodProvider.integrationAccountId!,
+//       value ? 1 : 0,
+//     );
+//     Navigator.pop(context);
+//     if (!response.isSuccess) {
+//       setState(() {
+//         foodProvider.onlineStatus =
+//             value ? "online" : "paused";
+//       });
+//     }
+//   } catch (e) {
+//     Navigator.pop(context);
+//     setState(() {
+//         foodProvider.onlineStatus =
+//             value ?  "paused": "online" ;
+//     });
+//   }
+//                   },
+//                 ),
+//               ),
+//             ),
+//             Container(
+//               padding:
+//                   const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+//               margin: const EdgeInsets.symmetric(horizontal: 6),
+//               decoration: BoxDecoration(
+//                 color: isConnected
+//                     ? AppAssets.successColor.withOpacity(0.2)
+//                     : AppAssets.failureColor.withOpacity(0.2),
+//                 borderRadius: BorderRadius.circular(20),
+//               ),
+//               child: Text(
+//                 isConnected ? "Connected" : "Disconnected",
+//                 style: TextStyle(
+//                   fontFamily: AppAssets.nunitoBold,
+//                   fontSize: 10,
+//                   color: isConnected
+//                       ? AppAssets.successColor
+//                       : AppAssets.failureColor,
+//                 ),
+//               ),
+//             ),
+//           ],
+//         ),
+//       );
+//     },
+//   ),
+//             ],
+//           ),
+//         ),
+//       ],
+//     ),
+//   ),
+// ),
+//             ////////
+//                     const SizedBox(height: 10),
+        SizedBox(height: 10,),
           if(AppProvider.autoAcceptStatus==true)
             GestureDetector(
               onTap: () {
@@ -698,7 +1068,59 @@ class _SettingsState extends State<Settings> {
                 ),
               ),
             ),
+
+            
+           
             const SizedBox(height: 50),
+              GestureDetector(
+              onTap: () {
+               SharedPreferenceManager.getInstance().getAuthToken().then((token){
+                UtilityClass.showLoadingDialog(context);
+                provider.getProfile(token).then((onValue){
+                 UtilityClass.dismissLoading(context);
+                });
+               });
+              },
+              child: Container(
+                height: 60,
+                width: double.infinity,
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                decoration: BoxDecoration(
+                  color: AppAssets.whiteColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppAssets.widgetGrayColor, width: 1)
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 60,
+                      height: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: AppAssets.tabBackgroundColor,
+                        borderRadius: BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)),
+                      ),
+                      child: Icon(MdiIcons.refresh, size: 20,),
+                    ),
+                    const SizedBox(width: 12,),
+                    Expanded(child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text("Refresh Profile", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: AppAssets.dimen_16), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                      ],
+                    )),
+                    // const SizedBox(width: 12,),
+                    // CircleAvatar(
+                    //   backgroundColor: AppAssets.transparentColor,
+                    //   radius: 22,
+                    //   child: Icon(MdiIcons.chevronRight, size: 30,),
+                    // ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+
             GestureDetector(
               onTap: () {
                 SharedPreferenceManager.getInstance().clearAllPreferences().then((value) {
@@ -746,9 +1168,60 @@ class _SettingsState extends State<Settings> {
               ),
             ),
             const SizedBox(height: 50),
-          ],
+           ],
         ),
       );
     });
   }
+//   Future<void> _handleSwitchChange(
+//     var categoryItem, bool value) async {
+//   setState(() {
+//     categoryItem.available = value ? "1" : "0";
+//   });
+
+//   showDialog(
+//     context: context,
+//     barrierDismissible: false,
+//     builder: (_) => AlertDialog(
+//       backgroundColor: Colors.transparent,
+//       content: SizedBox(
+//         height: 50,
+//         child: Center(
+//           child: CircularProgressIndicator(
+//             color: AppAssets.purpleColor,
+//           ),
+//         ),
+//       ),
+//     ),
+//   );
+
+//   try {
+//     final token = await SharedPreferenceManager
+//         .getInstance()
+//         .getAuthToken();
+
+//     final response =
+//         await provider.updateMenuItemAvailability(
+//       token,
+//       categoryItem.itemId!,
+//       value ? "1" : "0",
+//     );
+
+//     Navigator.pop(context);
+
+//     if (!response.isSuccess) {
+//       setState(() {
+//         categoryItem.available =
+//             value ? "0" : "1";
+//       });
+//     }
+//   } catch (e) {
+//     Navigator.pop(context);
+//     setState(() {
+//       categoryItem.available =
+//           value ? "0" : "1";
+//     });
+//   }
+// }
+
 }

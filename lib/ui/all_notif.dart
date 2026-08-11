@@ -74,12 +74,31 @@ UserModel userModel=UserModel();
                           //       provider.readNotif(notif.notiUuid,data.authToken!);
                           //   });
                           // },
-                          leading: Container(
+                          leading:  (notif.image!=null)
+                        ?  ClipOval(
+                        child: Image.network(
+                        notif.image! ,
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                        return Image.asset(
+                        'assets/icons/basket.png',
+                         width: 40,
+                         height: 40,
+                         fit: BoxFit.cover,
+                       );
+                      },
+                     ),
+                     ):
+                           Container(
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              image: DecorationImage(image: NetworkImage(notif.image!),fit: BoxFit.fill)
+                              image: DecorationImage(image:
+                               AssetImage('assets/icons/basket.png') ,
+                              fit: BoxFit.fill)
                             ),
                           ),
                           title: Text(notif.message!,style: TextStyle(fontFamily: AppAssets.nunitoRegular ),maxLines: 1,overflow: TextOverflow.ellipsis,),

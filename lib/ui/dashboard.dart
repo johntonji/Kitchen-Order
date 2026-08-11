@@ -80,10 +80,8 @@ Timer? autoReadyTimer;
     getData();
     Future.microtask(() async{
       ref.read(scanPrintersNotifierProvider.notifier).initilaizee();
-       ref.read(scanPrintersNotifierProvider.notifier).scanForPrinters(context);
+      ref.read(scanPrintersNotifierProvider.notifier).scanForPrinters(context);
      });
-
-
    }
   
  int convMin=0;
@@ -137,6 +135,7 @@ void startTimers(String token, String merchantId) {
     (_) => Provider.of<AppProvider>(context, listen: false)
         .autoProcessingOrders(token),
   );
+  timer = Timer.periodic(const Duration(seconds: 8), (Timer t) => SharedPreferenceManager.getInstance().printListsValues());
 
   autoReadyTimer = Timer.periodic(
     const Duration(seconds: 8),
@@ -290,12 +289,15 @@ void startTimers(String token, String merchantId) {
 Future<void> getData() async {
   final data = await SharedPreferenceManager.getInstance().getUserData();
     AppProvider.ordercancelletionTimer= data.merchantOrderRejectMins ?? 0;
+    AppProvider.restaurantName=data.restaurantName ?? "";
   if (!mounted) return;
 
-      userModel = data;
-
+  userModel = data;
+ SharedPreferenceManager.getInstance().getAlertDuration().then((duration){
+     AppProvider.alertDuration=duration;
+    });
   final provider = Provider.of<AppProvider>(context, listen: false);
-
+  await provider.getOrderingStatus(data.authToken!,data.merchantId!,context);
   await provider.newOrders(data.authToken!);
   await provider.processingOrders(data.authToken!);
   await provider.readyOrders(data.authToken!);
@@ -306,11 +308,13 @@ Future<void> getData() async {
   provider.connectedProviders(data.authToken!);
   provider.termsAndConditions(data.authToken!);
   provider.getTimezone(data.authToken!, data.merchantId!);
+          provider.getdefaultPrinter(data.authToken!,data.merchantId!,"kitchen");
+          provider.getdefaultPrinter(data.authToken!,data.merchantId!,"client");
 
   startTimers(data.authToken!, data.merchantId!);
 
   /////
-          Provider.of<AppProvider>(context, listen: false).getOrderingStatus(data.authToken!,data.merchantId!,context)
+        Provider.of<AppProvider>(context, listen: false).getOrderingStatus(data.authToken!,data.merchantId!,context)
           .then((onValue)
           {
             if(mounted){
@@ -399,25 +403,24 @@ Future<void> getData() async {
 
             if(AppProvider.autoAcceptStatus==true){
             List<OrderModel> orderList= await SharedPreferenceManager.getInstance().getNewOrderList();
-            print("orderList for autoPrint is $orderList autoPrinted value is $orderPrinted");
+            print("orderList for autoPrint is $orderList orderPrinted value is $orderPrinted");
             if(orderList.isNotEmpty){
             for(OrderModel order in orderList){
                 print("orderList order  is ${order.orderData.orderId} and its isPrinted is ${order.orderData.isPrinted}");
-                if(order.orderData.isPrinted=="0"){
-                  if(orderPrinted==true){  
+                if(order.orderData.isPrinted=="0" && orderPrinted==true){
+                  // if(orderPrinted==true){  
                     // setState(() {
                      orderPrinted=false;
                     // });
                    order.orderData.acceptedAt=AppProvider.getCurrentTime().toString();
                    autoPrint(order);
                   // });
-                  SharedPreferenceManager.getInstance().removeFromNewOrderList(order.orderData.orderUuid).then((onValue){
+                 await SharedPreferenceManager.getInstance().removeFromNewOrderList(order.orderData.orderUuid).then((onValue){
                   print("removed #${order.orderData.orderId}");
                 }); 
-               }
+              //  }
               }else if(order.orderData.isPrinted=="1"){
                   SharedPreferenceManager.getInstance().removeFromNewOrderList(order.orderData.orderUuid);
-
               }
             }
             } 
@@ -448,7 +451,7 @@ Future<void> getData() async {
           }
         }) 
         );
-         timer2= Timer.periodic(const Duration(seconds: 10), (Timer t) =>Provider.of<AppProvider>(context, listen: false).getNotifications(data.authToken!));
+      timer2= Timer.periodic(const Duration(seconds: 10), (Timer t) =>Provider.of<AppProvider>(context, listen: false).getNotifications(data.authToken!));
        
   
 }
@@ -467,8 +470,6 @@ void dispose() {
   super.dispose();
 }
 
-  
-
 /////// autoPrint
  Map<String,dynamic> kitchenData={};
  String kitchenReceiptPath = "";
@@ -478,38 +479,63 @@ void dispose() {
  bool clientPrinted=false;
 
 void autoPrint(OrderModel autoOrderData) async{
+   bool printClient=await SharedPreferenceManager.getInstance().getClientPrintingStatus();
+   bool printKitchen=await SharedPreferenceManager.getInstance().getKitchenPrintingStatus();
    print("Acceptance time is autoaccept ${autoOrderData.orderData.acceptedAt}");
 //  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Accpted at time is ${autoOrderData.orderData.acceptedAt}")));
-  
-Future.delayed(Duration(seconds: 10),(){
+  try{
+  Future.delayed(Duration(seconds: 3),(){
+    if(printClient==true || printKitchen==true){
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Printing receipts for #${autoOrderData.orderData.orderId}")));
+    }
      debugPrint("inside autoPrint function for #${autoOrderData.orderData.orderId}");
-    Future.delayed(Duration(seconds: 5),()async{
+    
+    if(printClient==false && printKitchen==false){
+      orderPrinted=true;
+      AppProvider.autoPrinting=false; 
+    }
+    else{
+    Future.delayed(Duration(seconds: 3),()async{
       await autoPrintClient(autoOrderData);  
     });
+    }
   });
+  }catch(e){
+    print("exception in autoPrint is $e");
+  }
+  finally {
+    orderPrinted = true; 
+  }
+
  }
 
 Future<void> autoPrintClient(OrderModel autoOrderData)async{
+     bool printClient=await SharedPreferenceManager.getInstance().getClientPrintingStatus();
+   bool printKitchen=await SharedPreferenceManager.getInstance().getKitchenPrintingStatus();
  final scanPrinterNotif = ref.watch(scanPrintersNotifierProvider); // for variables
-
+  autoPrintFailed=false; //added
+  
   String clientReceiptPath="";
-  await SharedPreferenceManager.getInstance().getReceiptData("MerchantReceipt").then((val) async{
-  clientReceiptPath=  await getReceiptData(val!, autoOrderData);  
+ if(printClient==true){
+   await SharedPreferenceManager.getInstance().getReceiptData("MerchantReceipt").then((val) async{
+  clientReceiptPath=  await getReceiptData(val!, autoOrderData,"Client Receipt");  
   receiptType="Client Receipt";
       //// debugPrint for client start
   String printerClientLogId=Uuid().v1();
   StackTrace? stack;
    // bugsnag.notify("clientReceiptPath is $clientReceiptPath", stack);
     debugPrint("clientReceiptPath is $clientReceiptPath");
-    if(clientReceiptPath==null || clientReceiptPath=="") {
+    if(clientReceiptPath=="") {
       if(autoPrintFailed==false){
         StackTrace? stack;
        // bugsnag.notify("autoPrint error 3", stack);
         debugPrint("error 3");
-        autoPrintFailed=true;
+        // autoPrintFailed=true;
+        kitchenModule(printKitchen,autoOrderData);
+        if(printKitchen==false){
         orderPrinted=true;
         return;
+        }
       }
     }
       if(scanPrinterNotif['selectedClientWifiPrinterIp']['ip']=="" && scanPrinterNotif['bluetoothClientPrinterConnected']==null){
@@ -518,11 +544,17 @@ Future<void> autoPrintClient(OrderModel autoOrderData)async{
                 StackTrace? stack;
                  // bugsnag.notify("autoPrint error 4", stack);
                    debugPrint("error 4 for #${autoOrderData.orderData.orderId}");
-                    autoPrintFailed=true;
-                     orderPrinted=true;
-                     return;
-                   }
-                    }else{
+                    // autoPrintFailed=true;
+                    kitchenModule(printKitchen,autoOrderData);
+                    if(printKitchen==false){ 
+                      orderPrinted=true;
+                        await SharedPreferenceManager.getInstance().removeFromNewOrderList(autoOrderData.orderData.orderUuid).then((onValue){
+                        print("in error 4 removed #${autoOrderData.orderData.orderId}");
+                         });
+                        return;
+                        }
+                       }
+                     }else{
                            debugPrint("selectedWifiPrinterIp is: ${scanPrinterNotif['selectedClientWifiPrinterIp']['ip']} ,bluetoothClientPrinterConnected is ${scanPrinterNotif['bluetoothClientPrinterConnected']?.name}");
                               String printerType="";
                               if(scanPrinterNotif['bluetoothClientPrinterConnected']!=null && scanPrinterNotif['selectedClientWifiPrinterIp']['ip']==""){
@@ -531,7 +563,7 @@ Future<void> autoPrintClient(OrderModel autoOrderData)async{
                                 printerType="Wifi";
                               }
                               debugPrint("printerLogId is printing $printerClientLogId");
-                              Provider.of<AppProvider>(context,listen: false).printerLogs(userModel.authToken!, autoOrderData, printerType, "printing", clientReceiptPath,printerClientLogId,"client").then((status) async{
+  Provider.of<AppProvider>(context,listen: false).printerLogs(userModel.authToken!, autoOrderData, printerType, "printing", clientReceiptPath,printerClientLogId,"client").then((status) async{
                                     
       if(scanPrinterNotif['selectedClientWifiPrinterIp']['ip'] !=""){
         
@@ -545,10 +577,12 @@ Future<void> autoPrintClient(OrderModel autoOrderData)async{
        // bugsnag.notify("autoPrint error 5", stack);
 
         debugPrint("error 5");
-        autoPrintFailed=true;
-        orderPrinted=true;
-
+        // autoPrintFailed=true;
+        kitchenModule(printKitchen,autoOrderData);
+        if(printKitchen==false){
+          orderPrinted=true;
         return;
+        }
        }
      }
 
@@ -557,14 +591,19 @@ Future<void> autoPrintClient(OrderModel autoOrderData)async{
      clientPrinted= await Provider.of<AppProvider>(context,listen: false).bluetoothPrintChannel(scanPrinterNotif['bluetoothClientPrinterConnected']!.address!, clientReceiptPath, userModel.authToken!, printerClientLogId,context,false).then((onValue){
       debugPrint("onValue value is $onValue");
       if(onValue== false){
-              StackTrace? stack;
+       StackTrace? stack;
        // bugsnag.notify("autoPrint error 11", stack);
 
         debugPrint("error 11");
-        autoPrintFailed=true;
-        orderPrinted=true;
-        
+        // autoPrintFailed=true;
+
+        kitchenModule(printKitchen,autoOrderData);
+        if(printKitchen==false){
+          orderPrinted=true;
         return false;
+        }else{
+          return true;
+        }
        }else{
         return true;
        }
@@ -574,19 +613,28 @@ Future<void> autoPrintClient(OrderModel autoOrderData)async{
      }
 
       }
-    }).then((onValue){
+    }).then((onValue){  ///ki
+      if(printKitchen==false){
+      
+        orderPrinted=true;
+         Future.delayed(Duration(seconds: 2),()async{
+        AppProvider.autoPrinting=false; 
+       debugPrint("autoPrinting value after printing ${AppProvider.autoPrinting}");
+    });  
+      }
               /// ///// call kitchen autoPrint -----
+ if(printKitchen==true){ 
   Future.delayed(Duration(seconds: 6),()async{
-       debugPrint("Client receipt completed printing $clientPrinted");
-    if(autoPrintFailed==false && clientPrinted==true){
+       debugPrint("Client receipt completed printing $clientPrinted ,autoPrintFailed  is $autoPrintFailed");
+    // if(autoPrintFailed==false){
 
     kitchenData= (await SharedPreferenceManager.getInstance().getReceiptData("KitchenEssentials"))!;
     if(kitchenData!={} && kitchenData!=null){
-      debugPrint("kitchen sharedPreferences Data is $kitchenData");
+      debugPrint("kitchen sharedPreferences Data is $kitchenData  for #${autoOrderData.orderData.orderId}");
        if (kitchenData != null){ 
         receiptType="Kitchen Receipt";
         try{
-      kitchenReceiptPath = await getReceiptData(kitchenData, autoOrderData);
+      kitchenReceiptPath = await getReceiptData(kitchenData, autoOrderData,"Kitchen Receipt");
       if(kitchenReceiptPath=="" || kitchenReceiptPath==null){
           if(autoPrintFailed==false){        
             StackTrace? stack;
@@ -610,7 +658,7 @@ Future<void> autoPrintClient(OrderModel autoOrderData)async{
        return;
       }
     }}
-    if(autoPrintFailed==false){
+    if(printKitchen==true){
      await autoPrintKitchen(autoOrderData);  
     }
    }  
@@ -618,8 +666,10 @@ Future<void> autoPrintClient(OrderModel autoOrderData)async{
         AppProvider.autoPrinting=false; 
        debugPrint("autoPrinting value after printing ${AppProvider.autoPrinting}");
     });
-   }
+  //  }
   });
+  }//printKitchen
+
     });
 
    }
@@ -627,9 +677,104 @@ Future<void> autoPrintClient(OrderModel autoOrderData)async{
 
   });
 
+} //printClient
 
+
+ if(printKitchen==true && printClient==false){ 
+  Future.delayed(Duration(milliseconds: 200),()async{
+       debugPrint("Client receipt completed printing $clientPrinted ,autoPrintFailed  is $autoPrintFailed");
+    // if(autoPrintFailed==false){
+
+    kitchenData= (await SharedPreferenceManager.getInstance().getReceiptData("KitchenEssentials"))!;
+    if(kitchenData!={} && kitchenData!=null){
+      debugPrint("kitchen sharedPreferences Data is $kitchenData  for #${autoOrderData.orderData.orderId}");
+       if (kitchenData != null){ 
+        receiptType="Kitchen Receipt";
+        try{
+      kitchenReceiptPath = await getReceiptData(kitchenData, autoOrderData,"Kitchen Receipt");
+      if(kitchenReceiptPath=="" || kitchenReceiptPath==null){
+          if(autoPrintFailed==false){        
+            StackTrace? stack;
+       // bugsnag.notify("autoPrint error 6", stack);
+         debugPrint("error 6A");
+         autoPrintFailed=true;
+         orderPrinted=true;
+        return;
+       }
+      }
+       }catch(e){
+      debugPrint("error in getting kitchenReceiptPath is $e");
+      if(autoPrintFailed==false){
+       StackTrace? stack;
+       // bugsnag.notify("autoPrint error 7", stack);
+
+        debugPrint("error 7A");
+        autoPrintFailed=true;
+        orderPrinted=true;
+
+       return;
+      }
+    }}
+    if(printKitchen==true){
+     await autoPrintKitchen(autoOrderData);  
+    }
+   }  
+    Future.delayed(Duration(seconds: 4),()async{
+        AppProvider.autoPrinting=false; 
+       debugPrint("autoPrinting value after printing ${AppProvider.autoPrinting}");
+    });
+  //  }
+  });
+  }
  }
+void kitchenModule(bool printKitchen,OrderModel autoOrderData){
+   if(printKitchen==true){ 
+  Future.delayed(Duration(seconds: 6),()async{
+       debugPrint("Client receipt completed printing $clientPrinted ,autoPrintFailed  is $autoPrintFailed");
+    // if(autoPrintFailed==false){
 
+    kitchenData= (await SharedPreferenceManager.getInstance().getReceiptData("KitchenEssentials"))!;
+    if(kitchenData!={} && kitchenData!=null){
+      debugPrint("kitchen sharedPreferences Data is $kitchenData  for #${autoOrderData.orderData.orderId}");
+       if (kitchenData != null){ 
+        receiptType="Kitchen Receipt";
+        try{
+      kitchenReceiptPath = await getReceiptData(kitchenData, autoOrderData,"Kitchen Receipt");
+      if(kitchenReceiptPath=="" || kitchenReceiptPath==null){
+          if(autoPrintFailed==false){        
+            StackTrace? stack;
+       // bugsnag.notify("autoPrint error 6", stack);
+         debugPrint("error 6");
+         autoPrintFailed=true;
+         orderPrinted=true;
+        return;
+       }
+      }
+       }catch(e){
+      debugPrint("error in getting kitchenReceiptPath is $e");
+        if(autoPrintFailed==false){
+             StackTrace? stack;
+       // bugsnag.notify("autoPrint error 7", stack);
+
+        debugPrint("error 7");
+        autoPrintFailed=true;
+        orderPrinted=true;
+
+       return;
+      }
+    }}
+    if(printKitchen==true){
+     await autoPrintKitchen(autoOrderData);  
+    }
+   }  
+    Future.delayed(Duration(seconds: 4),()async{
+        AppProvider.autoPrinting=false; 
+       debugPrint("autoPrinting value after printing ${AppProvider.autoPrinting}");
+    });
+  //  }
+  });
+  }
+}
 
 Future<void> autoPrintKitchen(OrderModel autoOrderData) async {
   final scanPrinterNotif = ref.watch(scanPrintersNotifierProvider); // for variables
@@ -711,21 +856,25 @@ Future<void> autoPrintKitchen(OrderModel autoOrderData) async {
     }
    });
     debugPrint("Kitchen receipt completed printing $kitchenPrinted");
-        if(clientPrinted == true && kitchenPrinted == true && autoPrintFailed==false) {
+        if(kitchenPrinted == true) {
       Provider.of<AppProvider>(context, listen: false)
       .printStatusUpdate(userModel.authToken!, autoOrderData.orderData.orderUuid, "1")
           .then((status) {
-        if (status.isSuccess) {
-          UtilityClass.showSuccessDialog(
-              context, "Order #${autoOrderData.orderData.orderId}", status.message);
-        } else {
-          UtilityClass.showFailedDialog(context, "Failed", status.message);
-        }
+        // if (status.isSuccess) {
+        //   UtilityClass.showSuccessDialog(
+        //       context, "Order #${autoOrderData.orderData.orderId}", status.message);
+        // } 
+        // else {
+        //   UtilityClass.showFailedDialog(context, "Failed", status.message);
+        // }
         orderPrinted=true;
         receiptType="Client Receipt";
       });
-        
+    }else{
+       orderPrinted=true;
+       receiptType="Client Receipt";
     }
+   
 }
 
 ///
@@ -1556,12 +1705,32 @@ void notiDialog(){
                         itemBuilder: (BuildContext context, int index) {  
                            NotifModel notif=Provider.of<AppProvider>(context, listen: false).notiList[index];
                          return ListTile(
-                          leading: Container(
+                          leading:
+                        (notif.image!=null)
+                        ?  ClipOval(
+                        child: Image.network(
+                        notif.image ?? "",
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                        return Image.asset(
+                        'assets/icons/basket.png',
+                         width: 40,
+                         height: 40,
+                         fit: BoxFit.cover,
+                       );
+                      },
+                     ),
+                     ):
+                           Container(
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              image: DecorationImage(image: NetworkImage(notif.image!),fit: BoxFit.fill)
+                              image: DecorationImage(image:
+                                 AssetImage('assets/icons/basket.png')  ,
+                              fit: BoxFit.fill)
                             ),
                           ),
                           title: Text(notif.message!,style: TextStyle(fontFamily: AppAssets.nunitoRegular ,fontSize: 14,),maxLines: 1,overflow: TextOverflow.ellipsis,),
@@ -1591,10 +1760,10 @@ void notiDialog(){
 }
 
  
-Future<String> getReceiptData(Map<String, dynamic> receiptData ,OrderModel order) async{
+Future<String> getReceiptData(Map<String, dynamic> receiptData ,OrderModel order,String type) async{
       List<String> finalCompList=[];
       String filePath="";
-    if (receiptType == "Client Receipt") {
+    if (type == "Client Receipt") {
       ClientReceiptSettings receiptSettings =
           ClientReceiptSettings.fromJson(receiptData);
       String previewOrdersVal = receiptSettings.previewOrdersVal;
@@ -1633,15 +1802,15 @@ Future<String> getReceiptData(Map<String, dynamic> receiptData ,OrderModel order
    }catch(e,stack){
        // bugsnag.notify("client error is $e", stack);
    }
-  }else if(receiptType=="Kitchen Receipt"){
+  }else if(type=="Kitchen Receipt"){
   KitchenReceiptSettings? receiptSettings;
      try {
       receiptSettings=KitchenReceiptSettings.fromJson(receiptData);
       }catch(e){
        debugPrint("error in receiptSettings is $e");
-       if(mounted){
-           UtilityClass.dismissLoading(context);
-       }
+      //  if(mounted){
+      //      UtilityClass.dismissLoading(context);
+      //  }
       }
 
   if(receiptSettings!=null)
@@ -1651,12 +1820,13 @@ Future<String> getReceiptData(Map<String, dynamic> receiptData ,OrderModel order
    String previewTimesVal=receiptSettings.previewTimesVal;
    String  previewPaymentsVal=receiptSettings.previewPaymentsVal;
    int blankLinesVal =receiptSettings.blankLinesVal;
- 
+   InfoBox1Model infoBox1Model = receiptSettings.infoBox1Model;
+      InfoBox2Model infoBox2Model = receiptSettings.infoBox2Model;
    HeaderModel headerModel=receiptSettings.headerModel;
    OrderDetailsModel  orderDetailsModel=receiptSettings.orderDetails;
    KitchenItemsModel  kitchenItemsModel=receiptSettings.items;
    PackagingQualityModel  packagingQualityModel=receiptSettings.packagingQualityModel;
-
+ ContactDetailsModel contactDetailsModel = receiptSettings.contactDetails;
     String otherPremise=receiptSettings.otherPremiseText;
     int onPremiseSize=receiptSettings.onPermiseSize ?? 11;
     int clientCommentSize=receiptSettings.clientCommentSize;
@@ -1670,14 +1840,14 @@ Future<String> getReceiptData(Map<String, dynamic> receiptData ,OrderModel order
                  }
     }
   debugPrint("got receiptSettings "); 
-  filePath=  await  dynKitchenPdfGenerate(order, previewOrdersVal, previewTimesVal, previewPaymentsVal, blankLinesVal, headerModel, onPremiseSize, orderDetailsModel, kitchenItemsModel, packagingQualityModel, clientCommentSize, isPaidTitleSize, premiseTypeVal, otherPremise, premiseTypeFinalVal, finalCompList);
+  filePath=  await  dynKitchenPdfGenerate(order,contactDetailsModel,infoBox1Model, infoBox2Model, previewOrdersVal, previewTimesVal, previewPaymentsVal, blankLinesVal, headerModel, onPremiseSize, orderDetailsModel, kitchenItemsModel, packagingQualityModel, clientCommentSize, isPaidTitleSize, premiseTypeVal, otherPremise, premiseTypeFinalVal, finalCompList);
   debugPrint("kitchen filepath isss $filePath");
  
   }else{
   debugPrint("receiptSettings is null ");
  }
  }
-  debugPrint("inside getReceiptData $receiptData ///// $receiptType //// $filePath ");
+  debugPrint("inside getReceiptData $receiptData ///// $type //// $filePath ");
    return filePath;              
  }
 

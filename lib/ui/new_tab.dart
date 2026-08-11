@@ -2,7 +2,6 @@
 import 'dart:async';
 import 'dart:ui';
 
-import 'package:bugsnag_flutter/bugsnag_flutter.dart';
 import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:expandable/expandable.dart';
@@ -142,71 +141,40 @@ String getRemainingTime(String createdAt) {
   String receiptType="Client Receipt";
 
     void autoPrint(OrderModel autoOrderData,int minutess ,String? providerId) async{
+      bool printClient=await SharedPreferenceManager.getInstance().getClientPrintingStatus();
+      bool printKitchen=await SharedPreferenceManager.getInstance().getKitchenPrintingStatus();
+      print(" Printing minutes are : [$minutess]");
       print("provider ID 2 is $providerId");
       print("Acceptance time is  ${autoOrderData.orderData.acceptedAt}");
       // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Acceptance time is  ${autoOrderData.orderData.acceptedAt}")));
       Navigator.pop(context);
+    if(printClient==true || printKitchen==true){
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Printing receipts for #${autoOrderData.orderData.orderId}")));
+    }
+   
     UtilityClass.showLoadingDialog(context);
      debugPrint("inside autoPrint function");
-    Future.delayed(Duration(seconds: 5),()async{
+     if(printClient==false && printKitchen==false){
+      endDecision(autoOrderData, minutess, providerId);
+     }else{
+      Future.delayed(Duration(seconds: 5),()async{
       await autoPrintClient(autoOrderData,minutess,providerId);  
     });
-
-///// testing  //////
-  //       if(autoPrintFailed==false){
-  //     Future.delayed(Duration(seconds: 4),()async{
-  //   kitchenData= (await SharedPreferenceManager.getInstance().getReceiptData("KitchenEssentials"))!;
-  //   if(kitchenData!={} && kitchenData!=null){
-  //     debugPrint("kitchen sharedPreferences Data is $kitchenData");
-  //      if (kitchenData != null){ 
-  //       receiptType="Kitchen Receipt";
-  //       try{
-  //     kitchenReceiptPath = await getReceiptData(kitchenData, autoOrderData);
-  //     if(kitchenReceiptPath=="" || kitchenReceiptPath==null){
-  //         if(autoPrintFailed==false){
-  //           debugPrint("error 1");
-  //       autoPrintFailed=true;
-  //     UtilityClass.dismissLoading(context);
-  //     endDecision(autoOrderData);
-  //      return;
-  //      }
-  //     }
-  //      }catch(e){
-  //     debugPrint("error in getting kitchenReceiptPath is $e");
-  //       if(autoPrintFailed==false){
-  //         debugPrint("error 2");
-  //       autoPrintFailed=true;
-  //     UtilityClass.dismissLoading(context);
-  //     endDecision(autoOrderData);
-  //      return;
-  //       }
-  //   }}
-  //   if(autoPrintFailed==false){
-  //    await autoPrintKitchen(autoOrderData);  
-  //   }
-   
-  //   }  
-
-  //   Future.delayed(Duration(seconds: 4),()async{
-
-  //       AppProvider.autoPrinting=false; 
-  //      debugPrint("autoPrinting value after printing ${AppProvider.autoPrinting}");
-  //     // UtilityClass.dismissLoading(context);
-  //   });
-  //  });}
-
-   ////testing /////
-  }
+     }
+    }
 
  ///autoPrint function for client receipt
  Future<void> autoPrintClient(OrderModel autoOrderData,int minutess,String? providerId)async{
+  bool printClient=await SharedPreferenceManager.getInstance().getClientPrintingStatus();
+  bool printKitchen=await SharedPreferenceManager.getInstance().getKitchenPrintingStatus();
+
   print("provider ID 3 is $providerId");
   print("autoPrintClient Acceptance time is  ${autoOrderData.orderData.acceptedAt}");
        final scanPrinterNotif = ref.watch(scanPrintersNotifierProvider); // for variables
 
   String clientReceiptPath="";
-  await SharedPreferenceManager.getInstance().getReceiptData("MerchantReceipt").then((val) async{
+if(printClient==true){ 
+   await SharedPreferenceManager.getInstance().getReceiptData("MerchantReceipt").then((val) async{
   clientReceiptPath=  await getReceiptData(val!, autoOrderData);  
    receiptType="Client Receipt";
       //// debugPrint for client start
@@ -214,48 +182,58 @@ String getRemainingTime(String createdAt) {
     StackTrace? stack;
        // bugsnag.notify("clientReceiptPath is $clientReceiptPath", stack);
     debugPrint("clientReceiptPath is $clientReceiptPath");
-    if(clientReceiptPath==null || clientReceiptPath=="") {
+    // if(printClient==true){
+      if(clientReceiptPath==null || clientReceiptPath=="") {
       if(autoPrintFailed==false){
-       
         StackTrace? stack;
        // bugsnag.notify("autoPrint error 3", stack);
-         if(mounted){
-               UtilityClass.dismissLoading(context);
-           }
+        //  if(mounted){
+        //        UtilityClass.dismissLoading(context);
+        //    }
         debugPrint("error 3");
-        autoPrintFailed=true;
-        // if(mounted){   //caused crash
-        // UtilityClass.dismissLoading(context);
-        // }
-      endDecision(autoOrderData,minutess,providerId);
+
+      // autoPrintFailed=true;
+       kitchenModule(printKitchen,autoOrderData,minutess,providerId);
+      if(printKitchen==false){
+        endDecision(autoOrderData,minutess,providerId);
       return;
+      }
      }
     }
+    // } //printClient
       if(scanPrinterNotif['selectedClientWifiPrinterIp']['ip']=="" && scanPrinterNotif['bluetoothClientPrinterConnected']==null){
-           MyMessage.showFailedMessage("No Client Printer Connected ", context);
+          // if(printClient==true){
+             MyMessage.showFailedMessage("No Client Printer Connected ", context);
               if(autoPrintFailed==false){
                 StackTrace? stack;
                  // bugsnag.notify("autoPrint error 4", stack);
 
                    debugPrint("error 4");
-                    autoPrintFailed=true;
-                     if(mounted){
-                       UtilityClass.dismissLoading(context);
-                         }
-                         endDecision(autoOrderData,minutess,providerId);
+                    // autoPrintFailed=true;
+                    //  if(mounted){
+                    //    UtilityClass.dismissLoading(context);
+                    //      }
+                          kitchenModule(printKitchen,autoOrderData,minutess,providerId);
+                         if(printKitchen==false){
+                          endDecision(autoOrderData,minutess,providerId);
                            return;
+                           }
                             }
-
+                              
+                              // }//printClient
                               }else{
-                                debugPrint("selectedWifiPrinterIp is: ${scanPrinterNotif['selectedClientWifiPrinterIp']['ip']} ,bluetoothClientPrinterConnected is ${scanPrinterNotif['bluetoothClientPrinterConnected']?.name}");
+                              debugPrint("selectedWifiPrinterIp is: ${scanPrinterNotif['selectedClientWifiPrinterIp']['ip']} ,bluetoothClientPrinterConnected is ${scanPrinterNotif['bluetoothClientPrinterConnected']?.name}");
                               String printerType="";
+                            //  if(printClient==true) {
                               if(scanPrinterNotif['bluetoothClientPrinterConnected']!=null && scanPrinterNotif['selectedClientWifiPrinterIp']['ip']==""){
                                 printerType="Bluetooth";
                               }else if(scanPrinterNotif['bluetoothClientPrinterConnected']==null && scanPrinterNotif['selectedClientWifiPrinterIp']['ip'] !=""){
                                 printerType="Wifi";
                               }
                               debugPrint("printerLogId is printing $printerClientLogId");
-                              Provider.of<AppProvider>(context,listen: false).printerLogs(userModel.authToken!, autoOrderData, printerType, "printing", clientReceiptPath,printerClientLogId,"client").then((status) async{
+                              // } //printClient
+// if(printClient==true){
+ Provider.of<AppProvider>(context,listen: false).printerLogs(userModel.authToken!, autoOrderData, printerType, "printing", clientReceiptPath,printerClientLogId,"client").then((status) async{
                                     
       if(scanPrinterNotif['selectedClientWifiPrinterIp']['ip'] !=""){
         
@@ -269,12 +247,14 @@ String getRemainingTime(String createdAt) {
        // bugsnag.notify("autoPrint error 5", stack);
 
         debugPrint("error 5");
-        autoPrintFailed=true;
-        if(mounted){
-        UtilityClass.dismissLoading(context); 
-        }
-        endDecision(autoOrderData,minutess,providerId);
-        return;
+        // autoPrintFailed=true;
+        // if(mounted){
+        // UtilityClass.dismissLoading(context); 
+        // }
+         kitchenModule(printKitchen,autoOrderData,minutess,providerId);
+        if(printKitchen==false){
+          endDecision(autoOrderData,minutess,providerId);
+        return;}
        }
      }
 
@@ -287,37 +267,43 @@ String getRemainingTime(String createdAt) {
        // bugsnag.notify("autoPrint error 11", stack);
 
         debugPrint("error 11");
-        autoPrintFailed=true;
-        if(mounted){
-         UtilityClass.dismissLoading(context); 
-        }
+        // autoPrintFailed=true;
+        // if(mounted){
+        //  UtilityClass.dismissLoading(context); 
+        // }
+         kitchenModule(printKitchen,autoOrderData,minutess,providerId);
+        if(printKitchen==false){
         endDecision(autoOrderData,minutess,providerId); 
         return false;
+        }else{
+          return true;
+        }
        }else{
         return true;
        }
       });
      if(autoPrintFailed==true){
-      return;
+      if(printKitchen==false){
+        return;
+        }
      }
-      
-   /*await bluetoothPrint.connect(bluetoothClientPrinterConnected!);
-     Future.delayed(Duration(seconds: 3),()async{
-     bool connected=  (await bluetoothPrint.isConnected)!;
-
-     Future.delayed(Duration(seconds: 3),(){
-      if(connected==true){
-       printReceiptBluetooth(bluetoothClientPrinterConnected!,printerClientLogId,clientLineText,false);
       }
-    });
-   }); */
-
-      }
+                          
     }).then((onValue){
+    if( printKitchen==false){
+      // if(mounted){
+      // UtilityClass.dismissLoading(context);
+      // }
+      endDecision(autoOrderData, minutess, providerId);
+    }
+             
+
               /// ///// call kitchen autoPrint -----
+if(printKitchen==true)
+ { 
   Future.delayed(Duration(seconds: 6),()async{
        debugPrint("Client receipt completed printing $clientPrinted");
-    if(autoPrintFailed==false && clientPrinted==true){   
+    // if( clientPrinted==true){   
 
     kitchenData= (await SharedPreferenceManager.getInstance().getReceiptData("KitchenEssentials"))!;
     if(kitchenData!={} && kitchenData!=null){
@@ -333,9 +319,9 @@ String getRemainingTime(String createdAt) {
 
             debugPrint("error 6");
             autoPrintFailed=true;
-            if(mounted){
-            UtilityClass.dismissLoading(context);
-            }
+            // if(mounted){
+            // UtilityClass.dismissLoading(context);
+            // }
             endDecision(autoOrderData,minutess,providerId);
             return;
        }
@@ -348,9 +334,9 @@ String getRemainingTime(String createdAt) {
 
         debugPrint("error 7");
         autoPrintFailed=true;
-        if(mounted){
-        UtilityClass.dismissLoading(context);
-        }
+        // if(mounted){
+        // UtilityClass.dismissLoading(context);
+        // }
         endDecision(autoOrderData,minutess,providerId);
        return;
       }
@@ -364,18 +350,130 @@ String getRemainingTime(String createdAt) {
        debugPrint("autoPrinting value after printing ${AppProvider.autoPrinting}");
       // UtilityClass.dismissLoading(context);
     });
+  //  }
+   });
    }
   });
-    });
-
+  // } //printClient
    }
    /// debugPrint fri cleint end
-
   });
+}
+/////               /// ///// call kitchen autoPrint -----
+  if(printClient==false && printKitchen==true){
+    Future.delayed(Duration(milliseconds: 200),()async{
+       debugPrint("Client receipt completed printing $clientPrinted");
+    if(printKitchen==true){   
 
+    kitchenData= (await SharedPreferenceManager.getInstance().getReceiptData("KitchenEssentials"))!;
+    if(kitchenData!={} && kitchenData!=null){
+      debugPrint("kitchen sharedPreferences Data is $kitchenData");
+       if (kitchenData != null){ 
+        receiptType="Kitchen Receipt";
+        try{
+      kitchenReceiptPath = await getReceiptData(kitchenData, autoOrderData);
+      if(kitchenReceiptPath=="" || kitchenReceiptPath==null){
+          if(autoPrintFailed==false){  
+          StackTrace? stack;
+        // bugsnag.notify("autoPrint error 6", stack);
+
+            debugPrint("error 6");
+            autoPrintFailed=true;
+            // if(mounted){
+            // UtilityClass.dismissLoading(context);
+            // }
+            endDecision(autoOrderData,minutess,providerId);
+            return;
+       }
+      }
+       }catch(e){
+      debugPrint("error in getting kitchenReceiptPath is $e");
+        if(autoPrintFailed==false){
+             StackTrace? stack;
+       // bugsnag.notify("autoPrint error 7", stack);
+
+        debugPrint("error 7");
+        autoPrintFailed=true;
+        // if(mounted){
+        // UtilityClass.dismissLoading(context);
+        // }
+        endDecision(autoOrderData,minutess,providerId);
+       return;
+      }
+    }}
+    if(printKitchen==true){
+     await autoPrintKitchen(autoOrderData,minutess,null);  
+    }
+   }  
+    Future.delayed(Duration(seconds: 4),()async{
+        AppProvider.autoPrinting=false; 
+       debugPrint("autoPrinting value after printing ${AppProvider.autoPrinting}");
+      // UtilityClass.dismissLoading(context);
+    });
+   }  //printKitchen
+   });
+   }
 
  }
 
+
+///////// Kitchen part from suto client
+void kitchenModule(bool printKitchen,OrderModel autoOrderData,int minutess ,String? providerId){
+  if(printKitchen==true)
+ { 
+  Future.delayed(Duration(seconds: 6),()async{
+       debugPrint("Client receipt completed printing $clientPrinted");
+    // if( clientPrinted==true){   
+
+    kitchenData= (await SharedPreferenceManager.getInstance().getReceiptData("KitchenEssentials"))!;
+    if(kitchenData!={} && kitchenData!=null){
+      debugPrint("kitchen sharedPreferences Data is $kitchenData");
+       if (kitchenData != null){ 
+        receiptType="Kitchen Receipt";
+        try{
+      kitchenReceiptPath = await getReceiptData(kitchenData, autoOrderData);
+      if(kitchenReceiptPath=="" || kitchenReceiptPath==null){
+          if(autoPrintFailed==false){  
+          StackTrace? stack;
+        // bugsnag.notify("autoPrint error 6", stack);
+
+            debugPrint("error 6");
+            autoPrintFailed=true;
+            // if(mounted){
+            // UtilityClass.dismissLoading(context);
+            // }
+            endDecision(autoOrderData,minutess,providerId);
+            return;
+       }
+      }
+       }catch(e){
+      debugPrint("error in getting kitchenReceiptPath is $e");
+        if(autoPrintFailed==false){
+             StackTrace? stack;
+       // bugsnag.notify("autoPrint error 7", stack);
+
+        debugPrint("error 7");
+        autoPrintFailed=true;
+        // if(mounted){
+        // UtilityClass.dismissLoading(context);
+        // }
+        endDecision(autoOrderData,minutess,providerId);
+       return;
+      }
+    }}
+    if(autoPrintFailed==false){
+     await autoPrintKitchen(autoOrderData,minutess,null);  
+    }
+   }  
+    Future.delayed(Duration(seconds: 4),()async{
+        AppProvider.autoPrinting=false; 
+       debugPrint("autoPrinting value after printing ${AppProvider.autoPrinting}");
+      // UtilityClass.dismissLoading(context);
+    });
+  //  }
+   });
+   }
+}
 
 Future<void> autoPrintKitchen(OrderModel autoOrderData,int minutess,String? providerId) async {
   final scanPrinterNotif = ref.watch(scanPrintersNotifierProvider); // for variables
@@ -401,9 +499,9 @@ Future<void> autoPrintKitchen(OrderModel autoOrderData,int minutess,String? prov
 
           debugPrint("error 8");
         autoPrintFailed=true;
-        if(mounted){
-     UtilityClass.dismissLoading(context);
-        }
+    //     if(mounted){
+    //  UtilityClass.dismissLoading(context);
+    //     }
       endDecision(autoOrderData,minutess,providerId);
         }
       return;
@@ -436,9 +534,9 @@ Future<void> autoPrintKitchen(OrderModel autoOrderData,int minutess,String? prov
 
          debugPrint("error 9");
           autoPrintFailed=true;
-          if(mounted){
-           UtilityClass.dismissLoading(context);
-          }
+          // if(mounted){
+          //  UtilityClass.dismissLoading(context);
+          // }
            Provider.of<AppProvider>(context,listen: false).updatePrinterLogs(userModel.authToken!, "failed",printerKitchenLogId);
           endDecision(autoOrderData,minutess,providerId);
           return;
@@ -485,10 +583,10 @@ Future<void> autoPrintKitchen(OrderModel autoOrderData,int minutess,String? prov
 void endDecision(OrderModel autoOrderData,int minutess,String? providerId){
  print("provider ID 4 is $providerId");
   // all receipt prints
-  if(clientPrinted == true && kitchenPrinted == true && autoPrintFailed==false) {
+  // if(clientPrinted == true && kitchenPrinted == true && autoPrintFailed==false) {
       Provider.of<AppProvider>(context, listen: false)
           .acceptOrder(userModel.authToken!, autoOrderData.orderData.orderUuid,
-              autoOrderData.orderData.deliveryDate, getTimeString(minutess),
+              autoOrderData.orderData.deliveryDate, minutess.toString(),   // changed here
               (autoOrderData.kitchenhubConnection==1 && autoOrderData.orderData.serviceCode=="delivery")
               ? true
               : false,
@@ -500,35 +598,18 @@ void endDecision(OrderModel autoOrderData,int minutess,String? providerId){
           Provider.of<AppProvider>(context, listen: false).printStatusUpdate(userModel.authToken!, autoOrderData.orderData.orderUuid, "1"); //update printed status
           SharedPreferenceManager.getInstance().addToProcessedOrderList(autoOrderData);  //add order to processed list 
          //
+         if(mounted){
           Navigator.of(context).pop();
+         }
           UtilityClass.showSuccessDialog(
               context, "Order Status", status.message);
         } else {
+          if(mounted){
           Navigator.of(context).pop();
+         }
           UtilityClass.showFailedDialog(context, "Failed", status.message);
         }
       });
-    }
-    //only client printed
-    else if(clientPrinted==true && kitchenPrinted==false && autoPrintFailed==true){
-   
-          partiallyPrintedDialog(autoOrderData,minutess);
-           Provider.of<AppProvider>(context, listen: false)
-          .acceptOrder(userModel.authToken!, autoOrderData.orderData.orderUuid,
-              autoOrderData.orderData.deliveryDate, getTimeString(minutess),
-               (autoOrderData.kitchenhubConnection==1 && autoOrderData.orderData.serviceCode=="delivery")
-              ? true
-              : false,
-             providerId)
-          .then((status) {
-        if (!status.isSuccess) {
-          UtilityClass.showFailedDialog(context, "Failed", status.message);
-        }
-      });
-    }   
-    else{
-      allprintFailedDialog(autoOrderData,minutess,providerId);
-    }
  }
 
 void allprintFailedDialog(OrderModel autoOrderData ,int minutess,String? providerId){
@@ -551,7 +632,7 @@ void allprintFailedDialog(OrderModel autoOrderData ,int minutess,String? provide
                     UtilityClass.showLoadingDialog(context);
                   Provider.of<AppProvider>(context, listen: false)
                      .acceptOrder(userModel.authToken!, autoOrderData.orderData.orderUuid,
-                    autoOrderData.orderData.deliveryDate, getTimeString(minutess),
+                    autoOrderData.orderData.deliveryDate, minutess.toString(),
                      (autoOrderData.kitchenhubConnection==1 && autoOrderData.orderData.serviceCode=="delivery")
                      ? true
                     : false,
@@ -794,6 +875,9 @@ Future<String> getReceiptData(Map<String, dynamic> receiptData ,OrderModel order
    OrderDetailsModel  orderDetailsModel=receiptSettings.orderDetails;
    KitchenItemsModel  kitchenItemsModel=receiptSettings.items;
    PackagingQualityModel  packagingQualityModel=receiptSettings.packagingQualityModel;
+    InfoBox1Model infoBox1Model = receiptSettings.infoBox1Model;
+      InfoBox2Model infoBox2Model = receiptSettings.infoBox2Model;
+      ContactDetailsModel contactDetailsModel = receiptSettings.contactDetails;
 
     String otherPremise=receiptSettings.otherPremiseText;
     int onPremiseSize=receiptSettings.onPermiseSize ?? 11;
@@ -810,7 +894,7 @@ Future<String> getReceiptData(Map<String, dynamic> receiptData ,OrderModel order
     debugPrint("got receiptSettings ");
 
          
-  filePath=  await  dynKitchenPdfGenerate(order, previewOrdersVal, previewTimesVal, previewPaymentsVal, blankLinesVal, headerModel, onPremiseSize, orderDetailsModel, kitchenItemsModel, packagingQualityModel, clientCommentSize, isPaidTitleSize, premiseTypeVal, otherPremise, premiseTypeFinalVal, finalCompList);
+  filePath=  await  dynKitchenPdfGenerate(order,contactDetailsModel,infoBox1Model,infoBox2Model, previewOrdersVal, previewTimesVal, previewPaymentsVal, blankLinesVal, headerModel, onPremiseSize, orderDetailsModel, kitchenItemsModel, packagingQualityModel, clientCommentSize, isPaidTitleSize, premiseTypeVal, otherPremise, premiseTypeFinalVal, finalCompList);
   debugPrint("kitchen filepath isss $filePath");
  
   }else{
@@ -1011,7 +1095,7 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                                   TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: AppAssets.dimen_12, color: AppAssets.widgetGrayColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
                                 ],
                               ),
-                                      Text("Accept the order in ${getRemainingTime(order.orderData.dateCreated!)} mins", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: AppAssets.dimen_12, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                      // Text("Accept the order in ${getRemainingTime(order.orderData.dateCreated!)} mins", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: AppAssets.dimen_12, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
 
                             ],
                           )),
@@ -1038,7 +1122,7 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                               //        SvgPicture.asset(AppAssets.timerIcon, colorFilter: ColorFilter.mode(AppAssets.whiteColor, BlendMode.srcIn), height: 16, width: 16,),
                               // SizedBox(width: 3,),
                               //       Text(
-                              //          getRemainingTime(order.orderData.dateCreated!),
+                                      //  getRemainingTime(order.orderData.dateCreated!),
                               //         style: TextStyle(
                               //         fontFamily: AppAssets.nunitoBold,
                               //         fontSize: AppAssets.dimen_12,
@@ -1077,7 +1161,7 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                                     
                                     ],
                                   ),
-                                      Text("Accept the order in ${getRemainingTime(order.orderData.dateCreated!)} mins", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: AppAssets.dimen_12, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                      // Text("Accept the order in ${getRemainingTime(order.orderData.dateCreated!)} mins", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: AppAssets.dimen_12, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
 
                                 ],
                               )),
@@ -1144,7 +1228,23 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                                       Text("PLACED ON: ", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 9), maxLines: 1, overflow: TextOverflow.ellipsis,),
                                       Expanded(child: Text(formatDateTime2(order.orderData.dateCreated.toString()), style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 9), maxLines: 2, overflow: TextOverflow.ellipsis,)),
                                     ],
-                                  )
+                                  ),
+                                      // if((order.formattedDeliveryTime !=null && order.formattedDeliveryTime!.isNotEmpty) || (order.orderData.deliveryTime.isNotEmpty))
+                                    if(order.orderData.whentoDeliver == "schedule" && order.extraDetails!=null && order.extraDetails?.formattedDeliveryTime!=null && order.extraDetails!.formattedDeliveryTime!.isNotEmpty)
+                                    const SizedBox(height: 6),
+                                    // if((order.formattedDeliveryTime !=null && order.formattedDeliveryTime!.isNotEmpty) || (order.orderData.deliveryTime.isNotEmpty))
+                                    if(order.orderData.whentoDeliver == "schedule" && order.extraDetails!=null && order.extraDetails?.formattedDeliveryTime!=null && order.extraDetails!.formattedDeliveryTime!.isNotEmpty)
+                                    Row(
+                                      children: [
+                                        Text("Exp. ${order.orderData.serviceCode.firstToUpper()} time: ", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 9), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                        Expanded(child: 
+                                        Text(
+                                         "${formatDateTime2(order.extraDetails?.formattedDeliveryTime)}",
+                                 style: TextStyle(
+                                // fontWeight: FontWeight.bold,
+                                fontSize:9))),
+                                      ],
+                                    )
                                 ],
                               ),
                             ),
@@ -1211,9 +1311,9 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                                           child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Align(alignment: Alignment.centerLeft, child: Text(item.itemName, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                                Align(alignment: Alignment.centerLeft, child: Text(item.itemName, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10),)),
                                                 if(item.price.sizeName!=null && item.price.sizeName!="")
-                                                Align(alignment: Alignment.centerLeft, child: Text("(${item.price.sizeName!})", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                                Align(alignment: Alignment.centerLeft, child: Text("(${item.price.sizeName!})", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10),)),
                                               ],
                                             )
                                            ),
@@ -1260,7 +1360,7 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
 
           final portionId = entry.key;
           final items = entry.value;
-
+          String? shownSubCat;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1278,8 +1378,14 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                   ),
                 ),
 
-              /// ✅ Show Items Under Portion
+              ///  Show Items Under Portion
               ...items.map((itemAddonItem) {
+                   final isFirst =
+                  shownSubCat != itemAddonItem.subcatName;
+
+                     if (isFirst) {
+                 shownSubCat = itemAddonItem.subcatName;
+                 }
                 return Row(
                   children: [
 
@@ -1289,18 +1395,24 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                         alignment: Alignment.centerLeft,
                         child: 
                         ( portionId != "no_portion")
-                        ? Text(
-                             " -${itemAddonItem.subItemName}",
-                          style: TextStyle(
-                            fontFamily: AppAssets.nunitoRegular,
-                            fontSize: 10,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                         )
+                        ? Container(
+                          margin: const EdgeInsets.only(left: 15),
+                          child: Text(
+                               "-${itemAddonItem.subItemName}",
+
+                              //  "   - ${itemAddonItem.subItemName}",
+                            style: TextStyle(
+                              fontFamily: AppAssets.nunitoRegular,
+                              fontSize: 10,
+                            ),
+                            maxLines: 6,
+                            overflow: TextOverflow.ellipsis,
+                            ),
+                        )
                         : Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                             if (isFirst)
                              Padding(
                             padding: const EdgeInsets.only(bottom: 4),
                             child: Text(
@@ -1312,15 +1424,34 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                           ),
                           
                          ),
-                         Text(
-                             " -${itemAddonItem.subItemName}",
-                          style: TextStyle(
-                            fontFamily: AppAssets.nunitoRegular,
-                            fontSize: 10,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                         )
+                           (itemAddonItem.isSubModifier=="1")
+                        ? Container(
+                          margin: const EdgeInsets.only(left: 18),
+                          child: Text(
+                               "- ${itemAddonItem.subItemName}",
+
+                              //  "   - ${itemAddonItem.subItemName}",
+                            style: TextStyle(
+                              fontFamily: AppAssets.nunitoRegular,
+                              fontSize: 10,
+                            ),
+                            maxLines: 6,
+                            overflow: TextOverflow.ellipsis,
+                            ),
+                        )
+                        : Container(
+                          margin: const EdgeInsets.only(left: 10),
+                          child: Text(
+                               "-${itemAddonItem.subItemName}",
+                              //  " -${itemAddonItem.subItemName}",
+                            style: TextStyle(
+                              fontFamily: AppAssets.nunitoRegular,
+                              fontSize: 10,
+                            ),
+                            maxLines: 6,
+                            overflow: TextOverflow.ellipsis,
+                           ),
+                        )
                           ],)
                       ),
                     ),
@@ -1423,7 +1554,18 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                                 ],
                               );
                             }),
-                        const SizedBox(height: 10),
+                              const SizedBox(height: 10),
+                      // if((order.extraDetails.hasDiscount==true))
+                       if((order.extraDetails!=null && order.extraDetails?.hasDiscount==true))
+                       Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text( order.extraDetails?.discountName ?? "Discount", 
+                                style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14, color: AppAssets.widgetGrayColor),),
+                            Text((order.extraDetails?.discountAmount != null && order.extraDetails?.discountAmount != "") ? '\$ (${formatToTwoDecimals(order.extraDetails?.discountAmount)})' : '\$ (0.00)',
+                                style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14),),
+                          ],
+                        ),
                        if((order.tip!=null && order.tip!="" && order.tip!="0"))
                        Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1713,7 +1855,7 @@ static Future<void> printImage(Uint8List imageBytes, String printerIp,OrderModel
                                            GestureDetector(
                                             onTap: () {
                                               order.orderData.acceptedAt= AppProvider.getCurrentTime().toString();
-                                              order.orderData.deliveryTime=getTimeString(minutes);
+                                              order.orderData.orderCompletionTime=minutes.toString();
                                               autoPrintFailed=false;
                                                 if(order.orderData.orderId==AppProvider.latestNewOrderNo){
                                                    AppProvider.ringBell=false;

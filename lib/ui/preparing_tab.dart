@@ -3,7 +3,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
-import 'package:bugsnag_flutter/bugsnag_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as rv;
 import 'package:order_receiving/main.dart';
 import 'package:order_receiving/providers/riverpod_provider.dart';
@@ -307,15 +306,18 @@ void getWifiPrinters() {
                             const SizedBox(width: 12,),
                             Row(
                               children: [
-                                 (order.orderData.deliveryTime=="" ||order.orderData.deliveryTime ==null)
-                                   ? 
-                                   Text(order.orderData.deliveryTime, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,)
+                                //  (order.orderData.deliveryTime=="" ||order.orderData.deliveryTime ==null)
+                                //    ? 
+                                 (order.orderData.whentoDeliver == "schedule")
+                                  ?  Text(formatDateTimeNoYear(order.extraDetails?.formattedDeliveryTime ?? order.orderData.deliveryDate), style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 2, overflow: TextOverflow.ellipsis,)
+                                  : Text(formatMinutesTo(order.orderData.orderCompletionTime!), style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,)
+                                  //  Text(formatMinutesTo(order.orderData.orderCompletionTime!), style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,)
 
-                                   : (getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)=="00 : 00")
-                                    ? Text("")
-                                    : Text(getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime), style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
-                                   const SizedBox(width: 4,),
-                                if (getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)!="00 : 00")
+                                  //  : (getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)=="00 : 00")
+                                  //   ? Text("")
+                                  //   : Text(getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime), style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                 ,  const SizedBox(width: 4,),
+                                // if (getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)!="00 : 00")
                                 SvgPicture.asset(AppAssets.timerIcon, colorFilter: ColorFilter.mode(AppAssets.redColor, BlendMode.srcIn), height: 16, width: 16,),
                               ],
                             ),
@@ -349,15 +351,17 @@ void getWifiPrinters() {
                                 const SizedBox(width: 12,),
                                 Row(
                                   children: [
-                                  (order.orderData.deliveryTime=="" ||order.orderData.deliveryTime ==null)
-                                   ?
-                                    Text(order.orderData.deliveryTime, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,)
+                                  // (order.orderData.deliveryTime=="" ||order.orderData.deliveryTime ==null)
+                                  //  ?
+                                  (order.orderData.whentoDeliver == "schedule")
+                                  ?  Text(formatDateTimeNoYear(order.extraDetails?.formattedDeliveryTime ?? order.orderData.deliveryDate), style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 2, overflow: TextOverflow.ellipsis,)
+                                  : Text(formatMinutesTo(order.orderData.orderCompletionTime!), style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,)
 
-                                  :(getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)=="00 : 00") 
-                                   ? Text("")
-                                   : Text(getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime), style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
-                                    const SizedBox(width: 4,),
-                                    if (getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)!="00 : 00")
+                                  // :(getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)=="00 : 00") 
+                                  //  ? Text("")
+                                  //  : Text(getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime), style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 11, color: AppAssets.redColor), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                   , const SizedBox(width: 4,),
+                                    // if (getRemainingPreparationTime(order.orderData.acceptedAt!,order.orderData.deliveryTime)!="00 : 00")
                                     SvgPicture.asset(AppAssets.timerIcon, colorFilter: ColorFilter.mode(AppAssets.redColor, BlendMode.srcIn), height: 16, width: 16,),
                                   ],
                                 ),
@@ -389,6 +393,30 @@ void getWifiPrinters() {
                                       children: [
                                         Text("PLACED ON: ", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 9), maxLines: 1, overflow: TextOverflow.ellipsis,),
                                         Expanded(child: Text(formatDateTime2(order.orderData.dateCreated.toString()), style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 9), maxLines: 2, overflow: TextOverflow.ellipsis,)),
+                                      ],
+                                    ),
+
+                                    if(order.orderData.whentoDeliver == "schedule" && order.extraDetails!=null && order.extraDetails?.formattedDeliveryTime !=null && order.extraDetails!.formattedDeliveryTime!.isNotEmpty)
+                                    const SizedBox(height: 6),
+                                    if(order.orderData.whentoDeliver == "schedule" && order.extraDetails!=null && order.extraDetails?.formattedDeliveryTime !=null && order.extraDetails!.formattedDeliveryTime!.isNotEmpty)
+                                    Row(
+                                      children: [
+                                        Text("Exp. ${order.orderData.serviceCode.firstToUpper()} time: ", style: TextStyle(fontFamily: AppAssets.nunitoMedium, fontSize: 9), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                        Expanded(child: 
+                                        Text(
+                            // (order.orderData.whentoDeliver == "now")
+                            //     ? (order.orderData.deliveryTime!="") ?"${timeToMinutes(order.orderData.deliveryTime)} min" :""
+                            //     :  (order.orderData.whentoDeliver == "schedule") 
+                            //      ? 
+                                 "${formatDateTime2(order.extraDetails?.formattedDeliveryTime ?? order.orderData.deliveryDate)}"
+                                //  at ${orderModal.orderData.deliveryTime})"
+                                //  : "${addMinutesToTime(order.orderData.acceptedAt!,int.parse(order.orderData.deliveryTime) 
+                                // //  timeToMinutes(order.orderData.deliveryTime)
+                                //  )}"
+                                 ,
+                                 style: TextStyle(
+                                // fontWeight: FontWeight.bold,
+                                fontSize:9))),
                                       ],
                                     )
                                   ],
@@ -457,9 +485,11 @@ void getWifiPrinters() {
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Align(alignment: Alignment.centerLeft, child: Text(item.itemName, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                                Align(alignment: Alignment.centerLeft, child: Text(
+                                                  item.itemName,
+                                                   style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10,))),
                                                 if(item.price.sizeName!=null && item.price.sizeName!="")
-                                                Align(alignment: Alignment.centerLeft, child: Text("(${item.price.sizeName!})", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                                Align(alignment: Alignment.centerLeft, child: Text("(${item.price.sizeName!})", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10))),
                                               ],
                                             ),
                                           ),
@@ -486,12 +516,15 @@ void getWifiPrinters() {
                                               Expanded(child: Align(alignment: Alignment.center, child: Text("", style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis,))),
                                             ],
                                           ),
-                                        
+                                        //  /*
                                         ListView.builder(
   shrinkWrap: true,
   physics: const NeverScrollableScrollPhysics(),
   itemCount: addonItemLocal.length,
-  itemBuilder: (context, index) {
+  // itemBuilder: (context,index){
+    
+  // },
+ itemBuilder: (context, index) {
 
     final itemAddon = addonItemLocal[index];
 
@@ -506,12 +539,12 @@ void getWifiPrinters() {
 
           final portionId = entry.key;
           final items = entry.value;
-
+          String? shownSubCat;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
-              /// ✅ Show Portion Title
+            
               if (portionId != "no_portion")
                 Padding(
                   padding: const EdgeInsets.only(bottom: 4),
@@ -524,29 +557,52 @@ void getWifiPrinters() {
                   ),
                 ),
 
-              /// ✅ Show Items Under Portion
+               
+
+              ///  Show Items Under Portion
               ...items.map((itemAddonItem) {
+                  final isFirst =
+                  shownSubCat != itemAddonItem.subcatName;
+
+                     if (isFirst) {
+                 shownSubCat = itemAddonItem.subcatName;
+                 }
                 return Row(
                   children: [
-
+ 
                      Expanded(
                       flex: 3,
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: 
                         ( portionId != "no_portion")
-                        ? Text(
-                             " -${itemAddonItem.subItemName}",
-                          style: TextStyle(
-                            fontFamily: AppAssets.nunitoRegular,
-                            fontSize: 10,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                         )
+                        ?  Container(
+                          margin: const EdgeInsets.only(left: 15),
+                          child: Text(
+                               "-${itemAddonItem.subItemName}",
+
+                              //  "   - ${itemAddonItem.subItemName}",
+                            style: TextStyle(
+                              fontFamily: AppAssets.nunitoRegular,
+                              fontSize: 10,
+                            ),
+                            maxLines: 6,
+                            overflow: TextOverflow.ellipsis,
+                            ),
+                        )
+                        // Text(
+                        //      " -${itemAddonItem.subItemName}",
+                        //   style: TextStyle(
+                        //     fontFamily: AppAssets.nunitoRegular,
+                        //     fontSize: 10,
+                        //   ),
+                        //   // maxLines: 1,
+                        //   overflow: TextOverflow.ellipsis,
+                        //  )
                         : Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                             if (isFirst)
                              Padding(
                             padding: const EdgeInsets.only(bottom: 4),
                             child: Text(
@@ -558,15 +614,34 @@ void getWifiPrinters() {
                           ),
                           
                          ),
-                         Text(
-                             " -${itemAddonItem.subItemName}",
-                          style: TextStyle(
-                            fontFamily: AppAssets.nunitoRegular,
-                            fontSize: 10,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                         )
+                         (itemAddonItem.isSubModifier=="1")
+                        ? Container(
+                          margin: const EdgeInsets.only(left: 18),
+                          child: Text(
+                               "- ${itemAddonItem.subItemName}",
+
+                              //  "   - ${itemAddonItem.subItemName}",
+                            style: TextStyle(
+                              fontFamily: AppAssets.nunitoRegular,
+                              fontSize: 10,
+                            ),
+                            maxLines: 6,
+                            overflow: TextOverflow.ellipsis,
+                            ),
+                        )
+                        : Container(
+                          margin: const EdgeInsets.only(left: 10),
+                          child: Text(
+                               "-${itemAddonItem.subItemName}",
+                              //  " -${itemAddonItem.subItemName}",
+                            style: TextStyle(
+                              fontFamily: AppAssets.nunitoRegular,
+                              fontSize: 10,
+                            ),
+                            maxLines: 6,
+                            overflow: TextOverflow.ellipsis,
+                           ),
+                        )
                           ],)
                       ),
                     ),
@@ -603,7 +678,7 @@ void getWifiPrinters() {
                       ),
                     ),
                   ],
-                );
+                ); 
               }).toList(),
 
               const SizedBox(height: 6),
@@ -613,7 +688,10 @@ void getWifiPrinters() {
       ),
     );
   },
-),
+
+
+), 
+// */
                                         //   ListView.builder(
                                         //       shrinkWrap: true,
                                         //       physics: const NeverScrollableScrollPhysics(),
@@ -671,6 +749,16 @@ void getWifiPrinters() {
                               }),
                          
                           const SizedBox(height: 10),
+                           if((order.extraDetails?.hasDiscount==true && order.extraDetails!=null ))
+                       Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text( order.extraDetails?.discountName ?? "Discount", 
+                                style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14, color: AppAssets.widgetGrayColor),),
+                            Text((order.extraDetails?.discountAmount != null && order.extraDetails?.discountAmount != "") ? '\$ (${formatToTwoDecimals(order.extraDetails?.discountAmount)})' : '\$ (0.00)',
+                                style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14),),
+                          ],
+                        ),
                               if((order.tip!=null && order.tip!="" && order.tip!="0"))
                               Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1106,9 +1194,9 @@ void getWifiPrinters() {
                          debugPrint("printReceiptWifi hello");
                        }
                       
-                       });
-                     }
-                         },
+                        });
+                        }
+                       },
                                   child: (receiptType=="Client Receipt")
                                   ? Container(
                                       height: 36,
@@ -1212,7 +1300,9 @@ List<String> apiAddedIp=[];
    OrderDetailsModel  orderDetailsModel=receiptSettings.orderDetails;
    KitchenItemsModel  kitchenItemsModel=receiptSettings.items;
    PackagingQualityModel  packagingQualityModel=receiptSettings.packagingQualityModel;
-
+   InfoBox1Model infoBox1Model = receiptSettings.infoBox1Model;
+      InfoBox2Model infoBox2Model = receiptSettings.infoBox2Model;
+   ContactDetailsModel contactDetailsModel = receiptSettings.contactDetails;
     String otherPremise=receiptSettings.otherPremiseText;
     int onPremiseSize=receiptSettings.onPermiseSize ?? 11;
     int clientCommentSize=receiptSettings.clientCommentSize;
@@ -1228,7 +1318,7 @@ List<String> apiAddedIp=[];
     debugPrint("got receiptSettings ");
 
          
-  filePath=  await  dynKitchenPdfGenerate(order, previewOrdersVal, previewTimesVal, previewPaymentsVal, blankLinesVal, headerModel, onPremiseSize, orderDetailsModel, kitchenItemsModel, packagingQualityModel, clientCommentSize, isPaidTitleSize, premiseTypeVal, otherPremise, premiseTypeFinalVal, finalCompList);
+  filePath=  await  dynKitchenPdfGenerate(order,contactDetailsModel,infoBox1Model, infoBox2Model, previewOrdersVal, previewTimesVal, previewPaymentsVal, blankLinesVal, headerModel, onPremiseSize, orderDetailsModel, kitchenItemsModel, packagingQualityModel, clientCommentSize, isPaidTitleSize, premiseTypeVal, otherPremise, premiseTypeFinalVal, finalCompList);
   debugPrint("kitchen filepath isss $filePath");
  
   }else{

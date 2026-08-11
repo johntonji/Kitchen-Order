@@ -81,6 +81,7 @@ class ItemsModel{
   int? titleSize;
   int? itemsSize;
   int? choicAddonSize;
+
   int? itemCommentSize;
   int? feesSize;
   int? totalSize;
@@ -90,12 +91,11 @@ class ItemsModel{
   ItemsModel({ required this.titleSize,required this.itemsSize,required this.choicAddonSize,  required this.itemCommentSize,required this.feesSize,required this.totalSize, required this.showAddonFees,required this.showAddonNames});
  static ItemsModel empty=ItemsModel(titleSize: 11, itemsSize: 9, choicAddonSize: 9,
   itemCommentSize: 9, feesSize: 9,totalSize:9, showAddonFees:true, showAddonNames: true);  
-
+    
     factory ItemsModel.fromJson(Map<String, dynamic> json) {
       return ItemsModel(titleSize: json["titleSize"], itemsSize: json['itemsSize'], choicAddonSize: json['choicAddonSize'],
        itemCommentSize: json['itemCommentSize'], feesSize: json['feesSize'], totalSize: json['totalSize'], showAddonFees: json['showAddonFees'], showAddonNames: json['showAddonNames']);
     }
-
 }
 
 
@@ -253,8 +253,10 @@ class KitchenReceiptSettings {
 
   KitchenItemsModel items;
   PackagingQualityModel packagingQualityModel;
-
+    InfoBox1Model infoBox1Model;
+  InfoBox2Model infoBox2Model;
   int? onPermiseSize;
+    ContactDetailsModel contactDetails;
   int clientCommentSize;
   int isPaidTitleSize;
   String premiseTypeVal;
@@ -272,8 +274,11 @@ class KitchenReceiptSettings {
     required this.items,
     required this.packagingQualityModel,
     required this.onPermiseSize,
+    required this.contactDetails,
     required this.clientCommentSize,
     required this.isPaidTitleSize,
+       required this.infoBox1Model,
+    required this.infoBox2Model,
     required this.premiseTypeVal,
     required this.otherPremiseText,
     required this.premiseTypeFinalVal,
@@ -294,8 +299,12 @@ class KitchenReceiptSettings {
       packagingQualityModel: PackagingQualityModel.fromJson(json['packagingQualityModel']),
 
       onPermiseSize: json['onPermiseSize'],
+      contactDetails: ContactDetailsModel.fromJson(json['contactDetails']),
       clientCommentSize: json['clientCommentSize'],
       isPaidTitleSize: json['isPaidTitleSize'],
+
+      infoBox1Model: InfoBox1Model.fromJson(json['infoBox1Model']),
+      infoBox2Model:InfoBox2Model.fromJson(json['infoBox2Model']),
 
       premiseTypeVal: json['premiseTypeVal'],
       otherPremiseText: json['otherPremiseText'],

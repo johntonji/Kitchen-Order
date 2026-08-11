@@ -17,6 +17,7 @@ class RecieptComponentsClient extends StatefulWidget {
 }
 
 class _RecieptComponentsClientState extends State<RecieptComponentsClient> {
+
   // String receiptTemplateName = "eatsBeeRec1";
 
   bool enabled = true;
@@ -1438,6 +1439,36 @@ class _RecieptComponentsClientState extends State<RecieptComponentsClient> {
                           if (item.keys.first == "Merchant Contact Details")
                             Column(
                               children: [
+                                ListTile(
+                                  title: Text("Name:"),
+                                  trailing: Container(
+                                    decoration: BoxDecoration(
+                                        border: Border.all(
+                                            color: Colors.black, width: 0.5),
+                                        borderRadius: BorderRadius.circular(10)),
+                                    padding: EdgeInsets.only(left: 6, right: 6),
+                                    child: DropdownButton(
+                                      underline: SizedBox(),
+                                      padding: EdgeInsets.all(5),
+                                      value: contactDetailsModel.nameSize,
+                                      icon: const Icon(Icons.keyboard_arrow_down),
+                                      items: fontSizes.map((int items) {
+                                        return DropdownMenuItem(
+                                          value: items,
+                                          child: Text("${items}px "),
+                                        );
+                                      }).toList(),
+                                      onChanged: (int? newValue) {
+                                        setState(() {
+                                          contactDetailsModel.nameSize = newValue!;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  height: 10,
+                                ),
                                 ListTile(
                                   title: Text("Address:"),
                                   trailing: Container(

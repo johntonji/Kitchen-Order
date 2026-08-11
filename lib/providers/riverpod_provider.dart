@@ -80,6 +80,25 @@ blu.BlueThermalPrinter bluetooth = blu.BlueThermalPrinter.instance;
     autoPrint = value;
     updateVar();
   }
+  void clearWifiClientPrinter(){
+    selectedClientWifiPrinterIp={"ip":"","name":""};
+    updateVar();
+  }
+
+  void setWifiClientPrinetr(String name,String ip){
+     selectedClientWifiPrinterIp={"ip":ip,"name":name};
+    updateVar();
+  }
+
+  void clearWifiKitchenPrinter(){
+    selectedKitchenWifiPrinterIp={"ip":"","name":""};
+    updateVar();
+  }
+
+  void setWifiKitchenPrinetr(String name,String ip){
+     selectedKitchenWifiPrinterIp={"ip":ip,"name":name};
+    updateVar();
+  }
 
 
 

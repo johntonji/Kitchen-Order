@@ -13,6 +13,7 @@ class UserModel {
   String? path;
   bool? autoAccept;
   int? merchantOrderRejectMins;
+  String? restaurantName;
  
   // List<String>? wifiPrinters;
 
@@ -32,7 +33,8 @@ class UserModel {
         this.logo,
         this.merchantOrderRejectMins,
         this.path,
-        this.autoAccept
+        this.autoAccept,
+        this.restaurantName
         });
 
   UserModel.fromJson(Map<String, dynamic> json) {
@@ -50,6 +52,7 @@ class UserModel {
     merchantOrderRejectMins = json['merchant_order_reject_mins'];
     path = json['path'];
     autoAccept=json["merchant_auto_accept_order"];
+    restaurantName=json["restaurant_name"];
 
   }
 
@@ -69,7 +72,8 @@ class UserModel {
     data['path'] = path;
     data["merchant_auto_accept_order"]=autoAccept;
     data["merchant_order_reject_mins"] = merchantOrderRejectMins;
-
+    data["restaurant_name"]=restaurantName;
+    
     return data;
   }
 }

@@ -15,7 +15,7 @@ class AppRepo{
     ApiResponse apiResponse;
     var data = jsonEncode({"username":username,"password":password});
 
-    var response = await http.post(Uri.parse("https://food.eatsbee.com//backoffice/apibackendmobile/login"),
+    var response = await http.post(Uri.parse(IPConfigurations.userLogin),
         /*headers: {
           'Authorization': 'Bearer ${userModel.authToken}',
         }*/
@@ -36,7 +36,28 @@ class AppRepo{
     }
   }
 
- 
+ ///Resfresh login data
+ Future<ApiResponse> getProfile(String token) async {
+  ApiResponse apiResponse;
+  try {
+    var response = await http.get(
+      Uri.parse(IPConfigurations.getProfile),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      apiResponse = ApiResponse.withSuccess(response);
+    } else {
+      apiResponse = ApiResponse.withError("Error: ${response.statusCode}");
+    }
+  } catch (e) {
+    apiResponse = ApiResponse.withError("Exception: $e");
+  }
+  return apiResponse;
+}
  
 
 // menu fetching Api
@@ -175,15 +196,16 @@ Future<ApiResponse> getMenuItems(String token) async {
     var data = (providerFlag==true)
     ?  jsonEncode({
       "order_uuid" : orderUUID,
-      "delivery_date" : date,
-      "delivery_time" : "$time:00",
+      // "delivery_date" : date,
+      "order_completion_time" : time,
       "deliver_by:"  : deliveryBy
     })
     : jsonEncode({
       "order_uuid" : orderUUID,
-      "delivery_date" : date,
-      "delivery_time" : "$time:00"
+      // "delivery_date" : date,
+      "order_completion_time" : time
     });
+    print("[acceptOrder]  apiRepo request body is $data");
 
     var response = await http.post(Uri.parse(IPConfigurations.acceptOrders),
         headers: {
@@ -196,10 +218,6 @@ Future<ApiResponse> getMenuItems(String token) async {
       return value;
     });
 
-    //debugPrint("Index Respo Data: "+data.toString());
-    //debugPrint("Index Respo: "+response.body.toString());
-    //var api=ApiResponse(response,null,null);
-    //debugPrint("Index Respo V2: "+api.toString());
     print("[acceptOrder]  apiRepo response is ${response.body}");
     if(response.body.isNotEmpty){
       apiResponse = ApiResponse(response,null,null);
@@ -299,7 +317,7 @@ Future<ApiResponse> printerLogs(
 
   var request = http.MultipartRequest(
     'POST',
-    Uri.parse("https://food.eatsbee.com/backoffice/apibackendmobile/print_logs_store"),
+    Uri.parse(IPConfigurations.printerLogs),
   );
 
   // Add headers
@@ -392,7 +410,7 @@ Future<ApiResponse> updatePrinterLogs(
     });
 
 
-    var response = await http.post(Uri.parse("https://food.eatsbee.com/backoffice/apibackendmobile/print_store"),
+    var response = await http.post(Uri.parse(IPConfigurations.printStore),
         headers: {
           'Authorization': 'Bearer $token',
         },
@@ -839,5 +857,49 @@ Future<ApiResponse> printStatusUpdate(
       apiResponse = ApiResponse.withError("Error");
       return apiResponse;
     }
+  }
+
+//remove printer form default
+  Future<ApiResponse> unsetDefaultPrinter(
+    String token,
+    String printerId,
+    String type) async {
+  ApiResponse apiResponse;
+
+    var data = jsonEncode({
+    "printer_id":printerId,
+    "type":type,
+   });
+
+    var response = await http.post(Uri.parse(IPConfigurations.unsetDefaultPrinter),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+        body: data
+    );
+    if(response.body.isNotEmpty){
+      apiResponse = ApiResponse(response,null,null);
+      return apiResponse;
+    }else{
+      apiResponse = ApiResponse.withError("Error");
+      return apiResponse;
+    }
 }
+
+
+  //  Future<ApiResponse> getAppVersions()async{
+  //   ApiResponse apiResponse;
+  //   var response = await http.get(Uri.parse(IPConfigurations.getAppVersions),
+  //       headers: {
+  //         'Authorization': 'Bearer 7CV4PU3eOgcpOYALRgKqhElaiGODW4',
+  //       }
+  //   );
+  //   if(response.body.isNotEmpty){
+  //     apiResponse = ApiResponse(response,null,null);
+  //     return apiResponse;
+  //   }else{
+  //     apiResponse = ApiResponse.withError("Error");
+  //     return apiResponse;
+  //   }
+  // }
 }

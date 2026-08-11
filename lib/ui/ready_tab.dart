@@ -258,9 +258,9 @@ class _ReadyTabState extends State<ReadyTab> {
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Align(alignment: Alignment.centerLeft, child: Text(item.itemName, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                                Align(alignment: Alignment.centerLeft, child: Text(item.itemName, style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), )),
                                                 if(item.price.sizeName!=null && item.price.sizeName!="")
-                                                Align(alignment: Alignment.centerLeft, child: Text("(${item.price.sizeName!})", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis,)),
+                                                Align(alignment: Alignment.centerLeft, child: Text("(${item.price.sizeName!})", style: TextStyle(fontFamily: AppAssets.nunitoRegular, fontSize: 10))),
                                               ],
                                             ),
                                           ),
@@ -307,7 +307,7 @@ class _ReadyTabState extends State<ReadyTab> {
 
           final portionId = entry.key;
           final items = entry.value;
-
+          String? shownSubCat;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -327,6 +327,12 @@ class _ReadyTabState extends State<ReadyTab> {
 
               ///  Show Items Under Portion
               ...items.map((itemAddonItem) {
+                 final isFirst =
+                  shownSubCat != itemAddonItem.subcatName;
+
+                     if (isFirst) {
+                 shownSubCat = itemAddonItem.subcatName;
+                 }
                 return Row(
                   children: [
 
@@ -336,18 +342,24 @@ class _ReadyTabState extends State<ReadyTab> {
                         alignment: Alignment.centerLeft,
                         child: 
                         ( portionId != "no_portion")
-                        ? Text(
-                             " -${itemAddonItem.subItemName}",
-                          style: TextStyle(
-                            fontFamily: AppAssets.nunitoRegular,
-                            fontSize: 10,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                         )
+                        ? Container(
+                          margin: const EdgeInsets.only(left: 15),
+                          child: Text(
+                               "-${itemAddonItem.subItemName}",
+
+                              //  "   - ${itemAddonItem.subItemName}",
+                            style: TextStyle(
+                              fontFamily: AppAssets.nunitoRegular,
+                              fontSize: 10,
+                            ),
+                            maxLines: 6,
+                            overflow: TextOverflow.ellipsis,
+                            ),
+                        )
                         : Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            if (isFirst)
                              Padding(
                             padding: const EdgeInsets.only(bottom: 4),
                             child: Text(
@@ -359,15 +371,34 @@ class _ReadyTabState extends State<ReadyTab> {
                           ),
                           
                          ),
-                         Text(
-                             " -${itemAddonItem.subItemName}",
-                          style: TextStyle(
-                            fontFamily: AppAssets.nunitoRegular,
-                            fontSize: 10,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                         )
+                           (itemAddonItem.isSubModifier=="1")
+                        ? Container(
+                          margin: const EdgeInsets.only(left: 18),
+                          child: Text(
+                               "- ${itemAddonItem.subItemName}",
+
+                              //  "   - ${itemAddonItem.subItemName}",
+                            style: TextStyle(
+                              fontFamily: AppAssets.nunitoRegular,
+                              fontSize: 10,
+                            ),
+                            maxLines: 6,
+                            overflow: TextOverflow.ellipsis,
+                            ),
+                        )
+                        : Container(
+                          margin: const EdgeInsets.only(left: 10),
+                          child: Text(
+                               "-${itemAddonItem.subItemName}",
+                              //  " -${itemAddonItem.subItemName}",
+                            style: TextStyle(
+                              fontFamily: AppAssets.nunitoRegular,
+                              fontSize: 10,
+                            ),
+                            maxLines: 6,
+                            overflow: TextOverflow.ellipsis,
+                           ),
+                        )
                           ],)
                       ),
                     ),
@@ -416,8 +447,8 @@ class _ReadyTabState extends State<ReadyTab> {
   },
 ),
                                        
-                                          const SizedBox(height: 8.0),
-                                        ],
+                                const SizedBox(height: 8.0),
+                              ],
                                       ),
                                     ),
                                     Divider(
@@ -429,6 +460,16 @@ class _ReadyTabState extends State<ReadyTab> {
                               }),
                          
                         const SizedBox(height: 10),
+                         if((order.extraDetails?.hasDiscount==true && order.extraDetails!=null ))
+                       Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text( order.extraDetails?.discountName ?? "Discount", 
+                                style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14, color: AppAssets.widgetGrayColor),),
+                            Text((order.extraDetails?.discountAmount != null && order.extraDetails?.discountAmount != "") ? '\$ (${formatToTwoDecimals(order.extraDetails?.discountAmount)})' : '\$ (0.00)',
+                                style: TextStyle(fontFamily: AppAssets.nunitoBold, fontSize: 14),),
+                          ],
+                        ),
                            if((order.tip!=null && order.tip!="" && order.tip!="0"))
                             Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,

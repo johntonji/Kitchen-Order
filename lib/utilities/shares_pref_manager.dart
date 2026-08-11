@@ -21,9 +21,32 @@ class SharedPreferenceManager {
   static String userMerchantId = "merchantId";
   static String logo = "logo";
   static String merchantOrderRejectMins="merchant_order_reject_mins";
+  static String restaurantName="restaurant_name";
 
   static String printersWifi = "printersWifi";
   static String alertDuration="alertDuration";
+  static String printClient ="printClient";
+  static String printKitchen ="printKitchen";
+
+
+Future<void> toggleClientPrinting(bool print) async{
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setBool(printClient, print);
+}
+
+Future<bool> getClientPrintingStatus() async{
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(printClient) ?? false;
+}
+
+Future<void> toggleKitchenPrinting(bool print) async{
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setBool(printKitchen, print);
+}
+Future<bool> getKitchenPrintingStatus() async{
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(printKitchen) ?? false;
+}
 
 Future<void> saveAlertDuration(int duration) async{
   SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -32,7 +55,7 @@ Future<void> saveAlertDuration(int duration) async{
 
 Future<int> getAlertDuration()async{
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  String duration= prefs.getString(alertDuration)!;
+  String duration= prefs.getString(alertDuration) ?? "5";
    return  int.parse(duration);
 }
 
@@ -80,6 +103,7 @@ Future<List<Map<String, String>>> getPrinterList() async {
     prefs.setString(userAddress, userModel.address ?? "");
     prefs.setString(userMerchantId, userModel.merchantId ?? "");
     prefs.setString(merchantOrderRejectMins, userModel.merchantOrderRejectMins?.toString() ?? "");
+    prefs.setString(restaurantName, userModel.restaurantName ?? "");
 
    Response response = await get(Uri.parse(userModel.logo!));
   // 68d415a6-3faf-11f0-8119-6045bdeee9b0@thumbnail.png
@@ -123,6 +147,7 @@ static Future<bool> saveImage(List<int> imageBytes) async {
         merchantId: prefs.getString(userMerchantId),
         logo: prefs.getString(logo),
         merchantOrderRejectMins: int.tryParse(prefs.getString(merchantOrderRejectMins) ?? "0") ?? 0,
+        restaurantName: prefs.getString(restaurantName)
         // wifiPrinters: prefs.getStringList(wifiPrinters)
       );
     }catch(exception){
@@ -149,6 +174,7 @@ static Future<bool> saveImage(List<int> imageBytes) async {
     prefs.remove(userMerchantId);
     prefs.remove(logo);
     prefs.remove(merchantOrderRejectMins);
+    prefs.remove(restaurantName);
     prefs.remove("ReceiptTemplateList");
     prefs.remove("processedOrderList");
     prefs.remove("newOrderList");
@@ -270,17 +296,6 @@ Future<void> saveProcessedOrderList(List<OrderModel> orderList) async {
   });
  }
 
-// Future<void> addToProcessedOrderList(OrderModel newItem) async {
-//   final prefs = await SharedPreferences.getInstance();
-//   String? jsonString = prefs.getString('processedOrderList');
-
-//   if (jsonString != null) {
-//     List<dynamic> jsonList = jsonDecode(jsonString);
-//     // print("[getProcessedOrderList] called ,list is ${jsonList.map((json) => OrderModel.fromJson(json)).toList()}");
-//     List<OrderModel> orderList= jsonList.map((json) => OrderModel.fromJson(json)).toList();
-//     orderList.add(newItem);
-//   }
-//  }
 
 Future<void> addToProcessedOrderList(OrderModel newOrder) async {
   final prefs = await SharedPreferences.getInstance();
@@ -314,31 +329,30 @@ Future<void> addToProcessedOrderList(OrderModel newOrder) async {
 Future<void> printListsValues() async {
   List<String> idList1 = []; // processedOrderList
   List<String> idList2 = []; // newOrderList
-    final prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
 
   // Get processedOrderList
   String? jsonString = prefs.getString('processedOrderList');
-   if (jsonString != null) {
+  if (jsonString != null) {
     List<dynamic> jsonList = jsonDecode(jsonString);
     List<OrderModel> m = jsonList.map((json) => OrderModel.fromJson(json)).toList();
     for (OrderModel o in m) {
-    idList1.add(o.orderData.orderId);
-   }
-  print("[sharedPref] processedOrderList is $idList1");
-
+      idList1.add(o.orderData.orderId);
+    }
+    print("[sharedPref] processedOrderList is $idList1");
   }
 
   // Get newOrderList
-    String? jsonString2 = prefs.getString('newOrderList');
-      if (jsonString2 != null) {
+  String? jsonString2 = prefs.getString('newOrderList');
+  if (jsonString2 != null) {
     List<dynamic> jsonList = jsonDecode(jsonString2);
     List<OrderModel> m = jsonList.map((json) => OrderModel.fromJson(json)).toList();
     for (OrderModel o in m) {
-    idList2.add(o.orderData.orderId);
-   }
+      idList2.add(o.orderData.orderId);
+    }
     print("[sharedPref] newOrderList before filter is $idList2");
 
-    // Remove overlapping items
+    //Remove overlapping items
     idList2.removeWhere((id) => idList1.contains(id));
 
     print("[sharedPref] newOrderList after filter is $idList2");
@@ -350,6 +364,34 @@ Future<void> printListsValues() async {
     await prefs.setString('newOrderList', updatedJson);
   }
 }
+
+// Future<void> printListsValues()async{
+//   List<String> idList1=[];
+//   List<String> idList2=[];
+//     final prefs = await SharedPreferences.getInstance();
+//   String? jsonString = prefs.getString('processedOrderList');
+//    if (jsonString != null) {
+//     List<dynamic> jsonList = jsonDecode(jsonString);
+//     // print("[getNewOrderList] called ,list is ${jsonList.map((json) => OrderModel.fromJson(json)).toList()}");
+//    List<OrderModel> m=  jsonList.map((json) => OrderModel.fromJson(json)).toList();
+//    for(OrderModel o in m){
+//     idList1.add(o.orderData.orderId);
+//    }
+//   print("[sharedPref] processedOrderList is $idList1");
+
+//   }
+
+//     String? jsonString2 = prefs.getString('newOrderList');
+//       if (jsonString2 != null) {
+//     List<dynamic> jsonList = jsonDecode(jsonString2);
+//     // print("[getNewOrderList] called ,list is ${jsonList.map((json) => OrderModel.fromJson(json)).toList()}");
+//    List<OrderModel> m=  jsonList.map((json) => OrderModel.fromJson(json)).toList();
+//    for(OrderModel o in m){
+//     idList2.add(o.orderData.orderId);
+//    }
+//     print("[sharedPref] newOrderList is $idList2");
+//   }
+// }
 
 /// get it 
  Future<List<OrderModel>> getProcessedOrderList() async {
@@ -375,12 +417,15 @@ Future<void> saveNewOrderList(List<OrderModel> orderList) async {
   final processedIds = processedList.map((p) => p.orderData.orderId).toSet();
 
   // Remove all orders from orderList that are already processed
-  orderList.removeWhere((order) => processedIds.contains(order.orderData.orderId));
+  // orderList.removeWhere((order) => processedIds.contains(order.orderData.orderId));
+  List<OrderModel> filteredOrders = orderList
+    .where((order) => !processedIds.contains(order.orderData.orderId))
+    .toList();
 
-  print("Remaining orders: ${orderList.map((o) => o.orderData.orderId).toList()}");
+  print("Remaining orders: ${filteredOrders.map((o) => o.orderData.orderId).toList()}");
 
   // Save filtered list to SharedPreferences
-  String jsonString = jsonEncode(orderList.map((model) => model.toJson()).toList());
+  String jsonString = jsonEncode(filteredOrders.map((model) => model.toJson()).toList());
   await prefs.setString('newOrderList', jsonString);
 }
 
@@ -437,7 +482,7 @@ Future<void> addSingleOrderToNewOrderList(OrderModel newOrder) async {
 
   if (jsonString != null) {
     List<dynamic> jsonList = jsonDecode(jsonString);
-    print("[getNewOrderList] called ,list is ${jsonList.map((json) => OrderModel.fromJson(json)).toList()}");
+    print("[getNewOrderList] called ,list is ${jsonList.map((json) => OrderModel.fromJson(json).orderData.orderId).toList()}");
     return jsonList.map((json) => OrderModel.fromJson(json)).toList();
   }
   return [];

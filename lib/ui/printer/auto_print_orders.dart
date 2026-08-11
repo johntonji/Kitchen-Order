@@ -54,7 +54,10 @@ void getPrintersApi() async {
 
     final addedPrinters = provider.addedPrinterList;
 
-    if ((AppProvider.defaultClientPrinterIp == "" || AppProvider.defaultKitchenPrinterIp == "") && addedPrinters.length == 1) {
+ 
+  // /*  
+  // code to automatically make one printer as default priter if there's only one printer
+  if ((AppProvider.defaultClientPrinterIp == "" || AppProvider.defaultKitchenPrinterIp == "") && addedPrinters.length == 1) {
       final singlePrinter = addedPrinters[0];
       
       if (AppProvider.defaultClientPrinterIp == "") {
@@ -68,7 +71,8 @@ void getPrintersApi() async {
         await provider.getdefaultPrinter(data.authToken!, data.merchantId!, "kitchen");
         AppProvider.defaultKitchenPrinterIp = singlePrinter.ipAddress!;
       }
-    }
+    } 
+    // */
   } catch (e) {
     debugPrint("Error getting printers: $e");
   } finally {
@@ -334,12 +338,32 @@ void didChangeDependencies() {
                               Navigator.push(context, MaterialPageRoute(builder: (context)=> EditPrinterName(printerModal: provider.addedPrinterList[ind])));
                               },
                              )),
-                            PopupMenuItem(child: ListTile(
+                            PopupMenuItem(child: 
+                            (AppProvider.removePort(provider.addedPrinterList[ind].ipAddress!)==AppProvider.defaultClientPrinterIp)
+                            ? ListTile(
+                              title: Text("Remove Client Default"),
+                              onTap: ()async{ 
+                                provider.unsetDefaultprinters(userModel.authToken!,provider.addedPrinterList[ind].printerId!,"client");
+                                  Future.delayed(Duration(milliseconds: 200),(){
+                                      provider.getdefaultPrinter(userModel.authToken!, userModel.merchantId!,"client");
+                                    //  ref.read(scanPrintersNotifierProvider.notifier).setWifiClientPrinetr("Unknown Printer", AppProvider.removePort(provider.addedPrinterList[ind].ipAddress!));
+                                   ref.read(scanPrintersNotifierProvider.notifier).clearWifiClientPrinter();
+                                   });
+                                Navigator.pop(context);
+                                setState(() {
+                                      AppProvider.defaultClientPrinterIp="";
+                                  
+                                });
+                              },
+                            )
+                            : ListTile(
                               title: Text("Set Client Default"),
                               onTap: ()async{ 
                                 provider.setDefaultPrinter(userModel.authToken!, userModel.merchantId!, provider.addedPrinterList[ind].printerId!,"client");
                                   Future.delayed(Duration(milliseconds: 200),(){
                                       provider.getdefaultPrinter(userModel.authToken!, userModel.merchantId!,"client");
+                                     ref.read(scanPrintersNotifierProvider.notifier).setWifiClientPrinetr("Unknown Printer", AppProvider.removePort(provider.addedPrinterList[ind].ipAddress!));
+                                       print("Clientttt  ip address is ${provider.addedPrinterList[ind].ipAddress!}");
                                    });
                                 Navigator.pop(context);
                                 setState(() {
@@ -348,12 +372,32 @@ void didChangeDependencies() {
                                 });
                               },
                             ),),
-                            PopupMenuItem(child: ListTile(
+                            PopupMenuItem(child: 
+                            (AppProvider.removePort(provider.addedPrinterList[ind].ipAddress!)==AppProvider.defaultKitchenPrinterIp)
+                            ? ListTile(
+                              title: Text("Remove Kitchen Default"),
+                              onTap: ()async{ 
+                                provider.unsetDefaultprinters(userModel.authToken!,provider.addedPrinterList[ind].printerId!,"kitchen");
+                                  Future.delayed(Duration(milliseconds: 200),(){
+                                      provider.getdefaultPrinter(userModel.authToken!, userModel.merchantId!,"kitchen");
+                                    //  ref.read(scanPrintersNotifierProvider.notifier).setWifiClientPrinetr("Unknown Printer", AppProvider.removePort(provider.addedPrinterList[ind].ipAddress!));
+                                   ref.read(scanPrintersNotifierProvider.notifier).clearWifiKitchenPrinter();
+                                   });
+                                Navigator.pop(context);
+                                setState(() {
+                                      AppProvider.defaultKitchenPrinterIp="";
+                                  
+                                });
+                              },
+                            )
+                            : ListTile(
                               title: Text("Set Kitchen Default"),
                               onTap: ()async{ 
                                 provider.setDefaultPrinter(userModel.authToken!, userModel.merchantId!, provider.addedPrinterList[ind].printerId!,"kitchen");
                                   Future.delayed(Duration(milliseconds: 200),(){
                                      provider.getdefaultPrinter(userModel.authToken!, userModel.merchantId!,"kitchen");
+                                     ref.read(scanPrintersNotifierProvider.notifier).setWifiKitchenPrinetr("Unknown Printer", AppProvider.removePort(provider.addedPrinterList[ind].ipAddress!));
+                                    print("kitchennnnn  ip address is ${provider.addedPrinterList[ind].ipAddress!}");
                                    });
                                 Navigator.pop(context);
                                    setState(() {
@@ -394,16 +438,18 @@ void didChangeDependencies() {
                                    setState(() {
                                        if(AppProvider.defaultKitchenPrinterIp == AppProvider.removePort(provider.addedPrinterList[ind].ipAddress!)){
                                        AppProvider.defaultKitchenPrinterIp ="";
-                                       ref.read(scanPrintersNotifierProvider.notifier).selectedClientWifiPrinterIp={"name":"","ip":""};
+                                        ref.read(scanPrintersNotifierProvider.notifier).clearWifiKitchenPrinter();
+                                      //  ref.read(scanPrintersNotifierProvider.notifier).selectedClientWifiPrinterIp={"name":"","ip":""};
                                          ref.read(scanPrintersNotifierProvider.notifier).bluetoothClientPrinterConnected=null;
                                        }
 
                                        if(AppProvider.defaultClientPrinterIp == AppProvider.removePort(provider.addedPrinterList[ind].ipAddress!)){
                                         AppProvider.defaultClientPrinterIp ="";
-                                        ref.read(scanPrintersNotifierProvider.notifier).selectedKitchenWifiPrinterIp={"name":"","ip":""};
+                                        ref.read(scanPrintersNotifierProvider.notifier).clearWifiClientPrinter();
+                                        // ref.read(scanPrintersNotifierProvider.notifier).selectedKitchenWifiPrinterIp={"name":"","ip":""};
                                          ref.read(scanPrintersNotifierProvider.notifier).bluetoothKitchenPrinterConnected=null;
                                      }
-                                         ref.read(scanPrintersNotifierProvider.notifier).updateVar();
+                                        //  ref.read(scanPrintersNotifierProvider.notifier).updateVar();
                                    });
                                 },
                               ))
@@ -517,18 +563,18 @@ void didChangeDependencies() {
                                   // if this is client printer
                                    if(AppProvider.defaultClientPrinterIp== provider.addedPrinterList[ind].ipAddress){
                                     // set kitchen default as client default
-                                     provider.setDefaultPrinter(userModel.authToken!, userModel.merchantId!, AppProvider.defaultKitchenPrinterID,"client");
-                                     Future.delayed(Duration(milliseconds: 200),(){
+                                    //  provider.setDefaultPrinter(userModel.authToken!, userModel.merchantId!, AppProvider.defaultKitchenPrinterID,"client");
+                                    //  Future.delayed(Duration(milliseconds: 200),(){
                                      provider.getdefaultPrinter(userModel.authToken!, userModel.merchantId!,"client");
-                                   });
+                                  //  });
                                    }
 
                                     if(AppProvider.defaultKitchenPrinterID== provider.addedPrinterList[ind].ipAddress){
                                     // set client default as kitchen default
-                                     provider.setDefaultPrinter(userModel.authToken!, userModel.merchantId!, AppProvider.defaultClientPrinterID,"kitchen");
-                                     Future.delayed(Duration(milliseconds: 200),(){
+                                    //  provider.setDefaultPrinter(userModel.authToken!, userModel.merchantId!, AppProvider.defaultClientPrinterID,"kitchen");
+                                    //  Future.delayed(Duration(milliseconds: 200),(){
                                      provider.getdefaultPrinter(userModel.authToken!, userModel.merchantId!,"kitchen");
-                                   });
+                                  //  });
                                    }
                                   Navigator.pop(context);
                                    setState(() {

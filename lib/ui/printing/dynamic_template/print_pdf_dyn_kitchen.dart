@@ -2,7 +2,11 @@ import 'dart:typed_data';
 import 'package:order_receiving/main.dart';
 import 'package:order_receiving/models/order_model.dart';
 import 'package:order_receiving/models/reciept_modal.dart';
+import 'package:order_receiving/models/user_model.dart';
+import 'package:order_receiving/providers/app_provider.dart';
 import 'package:order_receiving/ui/printing/dynamic_template/print_pdf_dyn_client.dart';
+import 'package:order_receiving/ui/printing/editable_template/demo_pdf_client.dart';
+import 'package:order_receiving/utilities/shares_pref_manager.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -19,7 +23,9 @@ import 'package:pdf/widgets.dart' as pw;
 
 Future<String> dynKitchenPdfGenerate(
     OrderModel orderModal,
-
+    ContactDetailsModel contactDetailsModel,
+    InfoBox1Model infoBox1Model,
+    InfoBox2Model infoBox2Model,
     String previewOrdersVal,
     String previewTimesVal,
     String previewPaymentsVal,
@@ -39,6 +45,11 @@ Future<String> dynKitchenPdfGenerate(
       print("component list in function is $finalCompList");
   try {
     final pdf = pw.Document();
+    
+   UserModel userModel = UserModel.getInstance();
+   SharedPreferenceManager.getInstance().getUserData().then((value) {
+      userModel = value;
+    });
   //comment
   final ByteData commentImageData = await rootBundle.load('assets/icons/comment.png');
   final Uint8List commentImageBytes = commentImageData.buffer.asUint8List();
@@ -53,14 +64,46 @@ Future<String> dynKitchenPdfGenerate(
   final ByteData checkedImageData = await rootBundle.load('assets/icons/checked.png');
   final Uint8List checkedImageBytes = checkedImageData.buffer.asUint8List();
   final pw.ImageProvider checkedImage = pw.MemoryImage(checkedImageBytes);  
-
+  
+   Uint8List imageBytes = convertBase64Image(userModel.logo!);
+   final pw.ImageProvider logoImage =await getGrayscalePdfImage(imageBytes); 
 
     // Add receipt content
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.roll80, // 80mm receipt size
         build: (pw.Context context) {
-          return pw.Column(
+          return 
+          Column(
+            children: [
+               if(finalCompList.contains("Merchant Contact Details"))
+            pw.Image(logoImage, width: 50, height: 70), //here
+                 SizedBox(height: 6),
+                  if(finalCompList.contains("Merchant Contact Details"))
+                 Column(
+                  children: [
+                     pw.Text(
+                          textAlign: TextAlign.center,
+                       (AppProvider.restaurantName != null)? AppProvider.restaurantName!: "",
+                            style: pw.TextStyle(
+                                fontSize:
+                                    contactDetailsModel.nameSize!.toDouble())),
+                    pw.Text(
+                          textAlign: TextAlign.center,
+                        
+                          (userModel.address!=null) ? formatAddress(userModel.address!): "",
+                            style: pw.TextStyle(
+                                fontSize:
+                                    contactDetailsModel.addressSize!.toDouble())),
+                    pw.Text(
+                        textAlign: TextAlign.center,
+                         (userModel.contactNumber!=null || userModel.contactNumber!="") ?" ${userModel.contactNumber}": "",
+                            style: pw.TextStyle(
+                                fontSize:
+                                    contactDetailsModel.phoneSize!.toDouble())),
+                      ]
+                     ),
+                 pw.Column(
             children: List.generate(finalCompList.length, (finalIndex){
         return  pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -82,20 +125,27 @@ Future<String> dynKitchenPdfGenerate(
         ]),
        
          pw.SizedBox(height: 3),
+
+        if(orderModal.orderData.whentoDeliver == "schedule" && orderModal.extraDetails!=null && orderModal.extraDetails?.formattedDeliveryTime!=null && orderModal.extraDetails!.formattedDeliveryTime!.isNotEmpty)
         pw.Divider(),
+        if(orderModal.orderData.whentoDeliver == "schedule" && orderModal.extraDetails!=null && orderModal.extraDetails?.formattedDeliveryTime!=null && orderModal.extraDetails!.formattedDeliveryTime!.isNotEmpty)
          pw.SizedBox(height: 3),
-       
+        if(orderModal.orderData.whentoDeliver == "schedule" && orderModal.extraDetails!=null && orderModal.extraDetails?.formattedDeliveryTime!=null && orderModal.extraDetails!.formattedDeliveryTime!.isNotEmpty)
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
           pw.Expanded(child: 
           pw.Text("Exp. ${orderModal.orderData.serviceCode.firstToUpper()}:", style: pw.TextStyle( fontWeight: pw.FontWeight.bold, fontSize: headerModel.fulfillmentSize?.toDouble()))),
-          pw.Text( (orderModal.orderData.whentoDeliver == "schedule") 
-                 ? "${formatDate(orderModal.orderData.deliveryDate)} "
-                //  at ${orderModal.orderData.deliveryTime}"
-               :  (orderModal.orderData.deliveryTime.trim()!="") 
-                ? addMinutesToTime(orderModal.orderData.acceptedAt!, timeToMinutes(orderModal.orderData.deliveryTime))
-                :  "",
+          pw.Text( 
+            // (orderModal.orderData.whentoDeliver == "schedule") 
+            //      ?
+                  "${formatDateTimeNoYear(orderModal.extraDetails?.formattedDeliveryTime ?? orderModal.orderData.deliveryDate)} "
+              //   //  at ${orderModal.orderData.deliveryTime}"
+              //  :  (orderModal.orderData.orderCompletionTime!.trim()!="") 
+              //   ? addMinutesToTime(orderModal.orderData.acceptedAt!, int.parse(orderModal.orderData.orderCompletionTime!)
+              //   // timeToMinutes(orderModal.orderData.orderCompletionTime!)
+              //   ):  ""
+                ,
                 // formatDateTime(orderModal.orderData.acceptedAt ?? ""), 
           style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: headerModel.fulfillmentSize?.toDouble())),
           ]
@@ -105,8 +155,48 @@ Future<String> dynKitchenPdfGenerate(
         pw.SizedBox(height: 18),
           ]
          ),
-
-      if (finalCompList[finalIndex] == "Order details")
+   if(finalCompList[finalIndex]=="Your info box 1")
+   pw.Row(
+    mainAxisAlignment: pw.MainAxisAlignment.start,
+    children: [
+       pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          infoBox1Model.title!,
+          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: infoBox1Model.titleSize!.toDouble()),
+        ),
+        pw.SizedBox(height: 6),
+        pw.Container(
+          width: 180,
+          child: pw.Text(infoBox1Model.text!, style: pw.TextStyle(color: PdfColors.black, fontSize: infoBox1Model.textSize!.toDouble()),maxLines: 6)),
+        pw.SizedBox(height: 15),
+      ]
+     ),
+    ]
+   ),
+    
+     if(finalCompList[finalIndex]=="Your info box 2")
+    pw.Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+         pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          infoBox2Model.title!,
+          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: infoBox2Model.titleSize!.toDouble()),
+        ),
+        pw.SizedBox(height: 6),
+       pw.Container(
+          width: 180,
+          child: pw.Text(infoBox2Model.text!, style: pw.TextStyle(color: PdfColors.black, fontSize: infoBox2Model.textSize!.toDouble()),maxLines: 6)),
+        pw.SizedBox(height: 15),
+      ]
+     ),
+     
+    ]),
+     if (finalCompList[finalIndex] == "Order details")
                   pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
@@ -158,6 +248,8 @@ Future<String> dynKitchenPdfGenerate(
                         ),
                         pw.SizedBox(height: 20),
                       ]),
+
+                      
     
                 if (finalCompList[finalIndex] == "Items")
                   pw.Column(
@@ -180,18 +272,26 @@ Future<String> dynKitchenPdfGenerate(
                                   Column(
                                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                                       children:[
+                                      pw.SizedBox(
+                                       width: 150,
+                                       child: 
                                          pw.Text(
                                         "${orderModal.items[index].qty}X ${normalizeText(orderModal.items[index].itemName)}",
                                         style: pw.TextStyle(
                                             fontSize: kitchenItemsModel.itemsSize!
-                                                .toDouble())),
+                                                .toDouble()))
+                                      ),
                                           
                                           if(orderModal.items[index].price.sizeName!=null && orderModal.items[index].price.sizeName!="")
-                                                 pw.Text(
+                                           pw.SizedBox(
+                                           width: 150,
+                                           child: 
+                                           pw.Text(
                                         "(${normalizeText(orderModal.items[index].price.sizeName!)})",
                                         style: pw.TextStyle(
                                             fontSize: kitchenItemsModel.itemsSize!
-                                                .toDouble())),
+                                                .toDouble()))
+                                         ),
                                       ]
                                       ),
                                     if(kitchenItemsModel.addCheckbox==true)
@@ -220,12 +320,16 @@ Future<String> dynKitchenPdfGenerate(
                                        if(kitchenItemsModel.showAddonNames==true) 
                                        if(addons.addonItems!=null && addons.addonItems!.isNotEmpty)
                                        if(addons.addonItems![0].pizzaPortionSectionId==null || addons.addonItems![0].pizzaPortionSectionId=="")
+                                        pw.SizedBox(
+                                         width: 150,
+                                         child: 
                                           pw.Text('- ${normalizeText(addons.subcategoryName!)}:',
                                             style: pw.TextStyle(
                                                 fontSize: kitchenItemsModel.choicAddonSize!
                                                     .toDouble(),
                                                 fontItalic:
-                                                    Font.timesItalic())),
+                                                    Font.timesItalic()))
+                                        ),
                                                                       ListView(
   children: groupAddonsByPortion(addons.addonItems!).entries.map((entry) {
     final portionId = entry.key;
@@ -234,11 +338,11 @@ Future<String> dynKitchenPdfGenerate(
     String portionTitle = "";
 
     if (portionId == "1") {
-      portionTitle = "   - Whole Portion";
+      portionTitle = "- Whole Portion";
     } else if (portionId == "2") {
-      portionTitle = "   - Left Portion";
+      portionTitle = "- Left Portion";
     } else if (portionId == "3") {
-      portionTitle = "   - Right Portion";
+      portionTitle = "- Right Portion";
     }
 
     return pw.Column(
@@ -259,12 +363,31 @@ Future<String> dynKitchenPdfGenerate(
         ...items.map((itemAddonItem) {
           return pw.Row(
             children: [
-
-              pw.Text("      ${normalizeText(itemAddonItem.subItemName!)}",
+              (itemAddonItem.isSubModifier=="1")
+                        ? pw.Container(
+                          margin: EdgeInsets.only(left: 20),
+                           width: 150,
+                           child: pw.Text(
+                             "- ${itemAddonItem.subItemName}",
+                          style: TextStyle(
+                            fontSize: kitchenItemsModel.itemCommentSize!.toDouble(),
+                          ),
+                          maxLines: 6,
+                          // overflow: TextOverflow.ellipsis,
+                          )
+                         )
+                        
+                        : 
+                        pw.Container(
+                          margin: EdgeInsets.only(left: 14),
+                         width: 150,
+                         child: 
+                   pw.Text("${normalizeText(itemAddonItem.subItemName!)}",
                   style: pw.TextStyle(
                     fontSize: kitchenItemsModel.itemCommentSize!.toDouble(),
                     fontItalic: Font.timesItalic(),
-                  )),
+                  ))
+                       ),
 
              
             ],
@@ -444,8 +567,10 @@ Future<String> dynKitchenPdfGenerate(
             ],
           );
            })
-          );
-        },
+          )
+        
+          ]);
+       },
       ),
     );
 

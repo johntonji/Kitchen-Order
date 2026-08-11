@@ -22,6 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _faCodeController=TextEditingController();
   bool hidePassword=true;
+  
   @override
   void initState() {
      requestPermissions();
@@ -116,6 +117,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         saveClientRecieptPreferences();
                         saveKitchenRecieptPreferences();
 
+                        SharedPreferenceManager.getInstance().toggleClientPrinting(true);
+                        SharedPreferenceManager.getInstance().toggleKitchenPrinting(true);
                         if(AppProvider.faEnabled==true){
                            // popup for fa auth code
                            faDialog();
@@ -287,11 +290,14 @@ class _LoginScreenState extends State<LoginScreen> {
      List<Map<String, dynamic>> data = [
     {"Preview Options": false},
     {"Ticket holder space": false},
+     {"Merchant Contact Details": false},
     {"Header": true},
     {"Order details": true},
     // {"Client Comment": true},
     {"Items": true},
     {"Is Paid": true},
+     {"Your info box 1": false},
+    {"Your info box 2": false},
     {"Packaging station quality control": true},
   ];
   String previewOrdersVal = "Pickup";
@@ -302,9 +308,11 @@ class _LoginScreenState extends State<LoginScreen> {
   String previewTimesVal = "now";
   String previewPaymentsVal = "COD";
 
-
+  
+  InfoBox1Model kitcheninfoBox1Model=InfoBox1Model.empty;
+  InfoBox2Model kitcheninfoBox2Model=InfoBox2Model.empty;
   // PreviewOptionsModel previewOptionsModel=PreviewOptionsModel.empty;
-HeaderModel headerModel=HeaderModel.empty; 
+  HeaderModel headerModel=HeaderModel.empty; 
   OrderDetailsModel orderDetailsModel = OrderDetailsModel.empty;
   KitchenItemsModel kitchenItemsModel = KitchenItemsModel.empty;
   ContactDetailsModel contactDetailsModel = ContactDetailsModel.empty;
@@ -347,6 +355,18 @@ HeaderModel headerModel=HeaderModel.empty;
         "addressSize": contactDetailsModel.addressSize,
         "phoneSize": contactDetailsModel.phoneSize,
       },
+      "infoBox1Model":{
+       "titleSize":kitcheninfoBox1Model.titleSize,
+       "textSize":kitcheninfoBox1Model.textSize,
+       "title":"",
+       "text":"",
+       },
+        "infoBox2Model":{
+       "titleSize":kitcheninfoBox2Model.titleSize,
+       "textSize":kitcheninfoBox2Model.textSize,
+       "title":"",
+       "text":"",
+       },
       "packagingQualityModel": {
         "titleSize": packagingQualityModel.titleSize,
         "correctItemsSize": packagingQualityModel.correctItemsSize,
@@ -366,6 +386,7 @@ HeaderModel headerModel=HeaderModel.empty;
     SharedPreferenceManager.getInstance()
         .saveReceiptData(recieptMap,"KitchenEssentials");
   }  
+  
 
   faDialog(){
    showDialog(

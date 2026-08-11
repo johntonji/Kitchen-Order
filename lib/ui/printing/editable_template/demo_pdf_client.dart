@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:order_receiving/main.dart';
 import 'package:order_receiving/models/reciept_modal.dart';
+import 'package:order_receiving/providers/app_provider.dart';
 import 'package:order_receiving/ui/printing/dynamic_template/print_pdf_dyn_client.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart';
@@ -94,11 +95,18 @@ Future<String> demoClientPdfGenerate(
         build: (pw.Context context) {
      return pw.Column(
               children: [
+                if(finalCompList.contains("Merchant Contact Details"))
                  pw.Image(logoImage, width: 50, height: 70), 
                  SizedBox(height: 6),
                  if(finalCompList.contains("Merchant Contact Details"))
                  Column(
                   children: [
+                    pw.Text(
+                          textAlign: TextAlign.center,
+                       (AppProvider.restaurantName != null)? AppProvider.restaurantName!: "",
+                            style: pw.TextStyle(
+                                fontSize:
+                                    contactDetailsModel.nameSize!.toDouble())),
                         pw.Text(
                           textAlign: TextAlign.center,
                        (address!=null)? formatAddress(address): "",
@@ -125,6 +133,9 @@ Future<String> demoClientPdfGenerate(
             }
            )),
 
+    pw.Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
         pw.Column(
            crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
@@ -138,8 +149,9 @@ Future<String> demoClientPdfGenerate(
           style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: infoBox1Model.titleSize!.toDouble()),
         ),
         SizedBox(height: 6),
-         pw.Text(infoBox1Model.text!, style: pw.TextStyle(color: PdfColors.black, fontSize: infoBox1Model.textSize!.toDouble())),
-
+        pw.Container(
+          width: 180,
+          child: pw.Text(infoBox1Model.text!, style: pw.TextStyle(color: PdfColors.black, fontSize: infoBox1Model.textSize!.toDouble()),maxLines: 6)),
         SizedBox(height: 15),
       ]
      ),
@@ -152,13 +164,18 @@ Future<String> demoClientPdfGenerate(
           style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: infoBox2Model.titleSize!.toDouble()),
         ),
         SizedBox(height: 6),
-         pw.Text(infoBox2Model.text!, style: pw.TextStyle(color: PdfColors.black, fontSize: infoBox2Model.textSize!.toDouble())),
+          pw.Container(
+            width: 180,
+            child: pw.Text(infoBox2Model.text!, style: pw.TextStyle(color: PdfColors.black, fontSize: infoBox2Model.textSize!.toDouble()),maxLines: 6)),
         SizedBox(height: 15),
       ]
      ),
           ]
         ),   
  
+      ]
+    ),
+        
 
 
 ///////////

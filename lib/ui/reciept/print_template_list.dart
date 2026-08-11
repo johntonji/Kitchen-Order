@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:order_receiving/assets/app_assets.dart';
 import 'package:order_receiving/ui/reciept/receipt_components_kitchen.dart';
@@ -64,7 +66,7 @@ class _ReceiptTemplatesState extends State<ReceiptTemplates> {
                   //     return
                        IconButton(onPressed: () {
                         SharedPreferenceManager.getInstance().getReceiptData("MerchantReceipt").then((receiptData){
-                       Navigator.push(
+                             Navigator.push(
                         context,
                         MaterialPageRoute(
                             builder: (context) => RecieptComponentsClient(
@@ -93,10 +95,10 @@ class _ReceiptTemplatesState extends State<ReceiptTemplates> {
                       IconButton(onPressed: () {
                     // debugPrint("kitchen data is ${recieptSnapshot.data}");
                       SharedPreferenceManager.getInstance().getReceiptData("KitchenEssentials").then((receiptData){
-                       Navigator.push(
+                              Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => RecieptComponentsKitchen( recieptDataMap:receiptData!,)));
+                            builder: (context) => RecieptComponentsKitchen( recieptDataMap:receiptData!, logo: widget.logo, address: widget.address, phone: widget.phone)));
                       });
                  
                            }, icon: Icon(Icons.edit))

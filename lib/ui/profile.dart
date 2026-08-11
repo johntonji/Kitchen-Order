@@ -56,6 +56,7 @@ class _ProfileState extends State<Profile> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   SizedBox(height: 10),
+                  if( userModel.username!=null &&userModel .username!.isNotEmpty )
                   buildTextField("Username", userNameController),
                   SizedBox(height: 25),
                   buildTextField("First Name", firstNameController),

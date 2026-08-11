@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:order_receiving/assets/app_assets.dart';
 import 'package:order_receiving/main.dart';
+import 'package:order_receiving/models/app_versions_model.dart';
 import 'package:order_receiving/models/menu_model2.dart';
 import 'package:order_receiving/models/notif_model.dart';
 import 'package:order_receiving/models/order_model.dart';
@@ -19,11 +20,36 @@ import 'package:order_receiving/utilities/shares_pref_manager.dart';
 import '../repositories/app_repo.dart';
 import '../utilities/base/api_response.dart';
 import '../utilities/base/response_model.dart';
-
+import 'package:http/http.dart' as http;
 import 'package:timezone/timezone.dart' as tz;
 
 class AppProvider with ChangeNotifier{
+  // static AppVersion latestAppVersion = AppVersion(
+  //   id: "",
+  //   installedCount: 0,
+  //   approvalStatus: "",
+  //   appFile: "",
+  //   appIcon: "",
+  //   versionCode: "",
+  //   buildNumber: "",
+  //   sizeInMb: 0,
+  //   hashString: "",
+  //   releaseName: "",
+  //   releaseComments: "",
+  //   releaseTrack: "",
+  //   createdOn: DateTime.now(),
+  //   updatedOn: DateTime.now(),
+  //   minSdkVersion: "",
+  //   targetSdkVersion: "",
+  //   isDefault: false,
+  //   isEnabled: false,
+  //   application: ""
+  // );
   
+  static String currentAppVersion="";
+  static int versionUpdateFlag=0;
+  String localdeviceId="";
+
   AppRepo appRepo;
   AppProvider({required this.appRepo});
   bool progress = false;
@@ -64,7 +90,7 @@ class AppProvider with ChangeNotifier{
  static int notifCount=0;
 
   static bool autoAcceptStatus=false;
-  static int alertDuration=5;
+  static int alertDuration=20;
   bool newLogin=false;
 
   static int selectedTab = 0;
@@ -75,6 +101,7 @@ class AppProvider with ChangeNotifier{
   static String modifiedAtTime="";
 
   static String timezone="";
+  static String restaurantName="";
 
 // remove port from ip
 static String removePort(String ipWithPort) {
@@ -267,6 +294,7 @@ static String? getPort(String ipWithPort) {
               logo: parsedResponse["details"]["user_data"]["logo"],
               path: parsedResponse["details"]["user_data"]["path"],
               merchantOrderRejectMins: parsedResponse["details"]["user_data"]["merchant_order_reject_mins"],
+              restaurantName: parsedResponse["details"]["payload"]["restaurant_name"]
           );
           newLogin=true;
           autoAcceptStatus=parsedResponse["details"]["payload"]["merchant_auto_accept_order"];
@@ -289,6 +317,61 @@ static String? getPort(String ipWithPort) {
       return responseModel;
     }
   }
+
+
+  //Refresh login data
+  Future<ResponseModel> getProfile(String token)async{
+    progressStart();
+    ResponseModel responseModel;
+    try {
+      ApiResponse apiResponse = await appRepo.getProfile(token);
+      if (apiResponse.response != null && apiResponse.response!.statusCode == 200) {
+        var parsedResponse = jsonDecode(apiResponse.response!.body);
+        debugPrint("[getProfile] parsedResponse outside is $parsedResponse");
+        if(parsedResponse["code"] == 200 || parsedResponse["code"] == 2 || parsedResponse["code"] == 1){
+        debugPrint("[getProfile] parsedResponse inside is $parsedResponse");
+          faEnabled= parsedResponse["details"]["user_data"]["2fa_enabled"];
+          uuid=parsedResponse["details"]["user_data"]["user_uuid"];
+          if(faEnabled==false){
+            UserModel userModel = UserModel(
+              // username: username,
+              authToken: parsedResponse["details"]["user_token"],
+              userUuid: parsedResponse["details"]["user_data"]["user_uuid"],
+              firstName: parsedResponse["details"]["user_data"]["first_name"],
+              lastName: parsedResponse["details"]["user_data"]["last_name"],
+              emailAddress: parsedResponse["details"]["user_data"]["email_address"],
+              contactNumber: parsedResponse["details"]["user_data"]["contact_number"],
+              avatar: parsedResponse["details"]["user_data"]["avatar"],
+              address: parsedResponse["details"]["user_data"]["address"],
+              merchantId: parsedResponse["details"]["payload"]["merchant_id"],
+              logo: parsedResponse["details"]["user_data"]["logo"],
+              path: parsedResponse["details"]["user_data"]["path"],
+              merchantOrderRejectMins: parsedResponse["details"]["user_data"]["merchant_order_reject_mins"],
+              restaurantName: parsedResponse["details"]["payload"]["restaurant_name"]
+          );
+          // newLogin=true;
+          autoAcceptStatus=parsedResponse["details"]["payload"]["merchant_auto_accept_order"];
+          SharedPreferenceManager.getInstance().saveUserData(userModel);
+          }
+          responseModel = ResponseModel(true, parsedResponse["msg"] ??"");
+        }else{
+          responseModel = ResponseModel(false, parsedResponse["msg"] ?? "");
+        }
+      } else {
+        responseModel = ResponseModel(false, "Something went wrong");
+      }
+
+      progressReset();
+      return responseModel;
+    }catch(exception){
+      debugPrint("[getProfile] exception in getProfile is $exception");
+      responseModel = ResponseModel(false, "Something went wrong");
+      progressReset();
+      return responseModel;
+    }
+  }
+
+
  
  //terms and conditions
    Future<ResponseModel> termsAndConditions(String token)async{
@@ -338,12 +421,12 @@ static String? getPort(String ipWithPort) {
         var parsedResponse = jsonDecode(apiResponse.response!.body);
          debugPrint("[menu] is outside $parsedResponse");
         if(parsedResponse["code"] == 200 || parsedResponse["code"] == 1|| parsedResponse["code"] == 2){
-
+           debugPrint("[menu] is inside $parsedResponse");
          try{           
          parsedResponse["details"]["menus"].forEach((element) {
-            MenuModel2 model = MenuModel2.fromJson(element);
-            restrauntMenu.add(model);
-          });
+             MenuModel2 model = MenuModel2.fromJson(element);
+             restrauntMenu.add(model);
+           });
            }catch(e){
               debugPrint("[menu] could not add $e");
             }
@@ -354,7 +437,6 @@ static String? getPort(String ipWithPort) {
       } else {
         responseModel = ResponseModel(false, "Something went wrong");
       }
-
       progressReset();
       return responseModel;
     }catch(exception){
@@ -400,13 +482,13 @@ static String? getPort(String ipWithPort) {
   }
 
   /// New Orders
-  Future<ResponseModel> newOrders(String token)async{
-    newProgress = true;
-    newOrdersList.clear();
-    notifyListeners();
+ Future<ResponseModel> newOrders(String token) async {
+  newProgress = true;
+  newOrdersList.clear();
+  notifyListeners();
 
-    try {
-      ApiResponse apiResponse = await appRepo.newOrders(token);
+  try {
+    ApiResponse apiResponse = await appRepo.newOrders(token);
 
     if (apiResponse.response != null &&
         apiResponse.response!.statusCode == 200) {
@@ -415,7 +497,7 @@ static String? getPort(String ipWithPort) {
           jsonDecode(apiResponse.response!.body);
 
       debugPrint("[newOrders] response: $parsedResponse");
-       
+
       if (parsedResponse["code"] == 200 ||
           parsedResponse["code"] == 2 ||
           parsedResponse["code"] == 1) {
@@ -428,7 +510,7 @@ static String? getPort(String ipWithPort) {
               OrderModel model =
                   OrderModel.fromJson(element);
 
-              /// ✅ SAFE TIME PARSING
+              ///  SAFE TIME PARSING
               final completionTime =
                   model.orderCompletionTime;
 
@@ -480,13 +562,55 @@ static String? getPort(String ipWithPort) {
   } catch (exception) {
     debugPrint("[newOrders] error: $exception");
 
-      newProgress = false;
-      notifyToProvider();
+    newProgress = false;
+    notifyToProvider();
     return ResponseModel(
         false, "Something went wrong");
-    }
   }
- 
+}
+  // Future<ResponseModel> newOrders(String token)async{
+  //   newProgress = true;
+  //   newOrdersList.clear();
+  //   notifyListeners();
+  //   ResponseModel responseModel;
+  //   try {
+  //     ApiResponse apiResponse = await appRepo.newOrders(token);
+  //     if (apiResponse.response != null && apiResponse.response!.statusCode == 200) {
+  //       var parsedResponse =jsonDecode(apiResponse.response!.body);
+  //      debugPrint("[newOrders] outside  are $parsedResponse");
+  //       if(parsedResponse["code"] == 200 || parsedResponse["code"] == 2|| parsedResponse["code"] == 1){
+  //         debugPrint("[newOrders] inside  are $parsedResponse");
+  //         newOrdersList.clear();
+  //         parsedResponse["details"]["data"].forEach((element) {
+  //           time1=int.parse(OrderModel.fromJson(element).orderCompletionTime!);
+  //           print("time1 in newOrders is $time1");
+  //           OrderModel model = OrderModel.fromJson(element);
+
+  //           newOrdersList.add(model);
+  //         });
+
+  //         debugPrint("______: ${newOrdersList.length}");
+
+  //         responseModel = ResponseModel(true, parsedResponse["msg"]);
+  //       }else{
+  //         responseModel = ResponseModel(false, parsedResponse["msg"]);
+  //       }
+
+  //     } else {
+  //       responseModel = ResponseModel(false, "Something went wrong");
+  //     }
+
+  //     newProgress = false;
+  //     notifyToProvider();
+  //     return responseModel;
+  //   }catch(exception){
+  //    debugPrint("[newOrders] error is  $exception");
+  //     responseModel = ResponseModel(false, "Something went wrong");
+  //     newProgress = false;
+  //     notifyToProvider();
+  //     return responseModel;
+  //   }
+  // }
 
 static Timer? soundStopTimer;
 
@@ -514,11 +638,10 @@ void playSoundForDuration() async {
     debugPrint('Error in playSoundForDuration(): $e');
   }
 }
-
   
   Future<ResponseModel> autoNewOrders(String token,BuildContext context)async{
     // print("currentTime in tz is ${getCurrentTime()}");
-    debugPrint("auto ca lled");
+    debugPrint("auto called");
     ResponseModel responseModel;
     try {
       ApiResponse apiResponse = await appRepo.newOrders(token);
@@ -616,10 +739,9 @@ void playSoundForDuration() async {
             }
             }
           });
-
+        
          // ends here
-newOrdersList
-        .removeWhere((item) => !responseOrderIds.contains(item.orderData.orderId));  // remove order which are not in the response
+         newOrdersList.removeWhere((item) => !responseOrderIds.contains(item.orderData.orderId));  // remove order which are not in the response
 
           debugPrint("______: ${newOrdersList.length}");
           responseModel = ResponseModel(true, parsedResponse["msg"]);
@@ -653,7 +775,7 @@ newOrdersList
     }
   }
 
-  /// Processing Orders
+  // /// Processing Orders
   Future<ResponseModel> processingOrders(String token)async{
     processingProgress = true;
     processingOrdersList.clear();
@@ -756,8 +878,9 @@ newOrdersList
       ApiResponse apiResponse = await appRepo.readyOrders(token);
       if (apiResponse.response != null && apiResponse.response!.statusCode == 200) {
         var parsedResponse = jsonDecode(apiResponse.response!.body);
-
+     
         if(parsedResponse["code"] == 200 || parsedResponse["code"] == 2|| parsedResponse["code"] == 1){
+              debugPrint("[readyOrders] orders inside are  $parsedResponse");
           parsedResponse["details"]["data"].forEach((element) {
             readyOrdersList.add(OrderModel.fromJson(element));
           });
@@ -861,7 +984,8 @@ newOrdersList
     }
   }
  /// Accept Orders
-  Future<ResponseModel> acceptOrder(String token, String orderUUID, String date, String time)async{
+  Future<ResponseModel> acceptOrder(String token, String orderUUID, String date, String time,bool providerFlag,String? deliveryBy)async{
+    print("provider ID 6 is $deliveryBy");
     ResponseModel responseModel;
     print("[acceptOrderr] orderUUID is $orderUUID, date is $date, time is $time");
     try {
@@ -1076,6 +1200,7 @@ Future<ResponseModel> cancelOrder(String token, String orderUUID, String amount,
       return responseModel;
     }
   }
+
 
 //addPrinter
   Future<ResponseModel> addPrinters(String token, PrinterModal printerModal)async{
@@ -1794,7 +1919,48 @@ Future<ResponseModel> deleteNotif(String token) async {
     }
   }
 
-
+ /// Processing Orders
+  // Future<ResponseModel> connectedProviders(String token)async{
+  //   connectedProvidersList.clear();
+  //   notifyListeners();
+  //   ResponseModel responseModel;
+  //   try {
+  //     ApiResponse apiResponse = await appRepo.connectedProviders(token);
+  //     if (apiResponse.response != null && apiResponse.response!.statusCode == 200) {
+  //       var parsedResponse = jsonDecode(apiResponse.response!.body);
+  //       debugPrint("[connectedProviders] outside  are $parsedResponse");
+  //       newOrders(token);
+  //       if(parsedResponse["code"] == 200 || parsedResponse["code"] == 2|| parsedResponse["code"] == 1){
+  //       debugPrint("[connectedProviders] inside  are $parsedResponse");
+  //       // debugPrint("[connectedProviders]  customer data is ${parsedResponse["details"]["data"][6]["customer"]}");
+  //        connectedProvidersList.clear();
+  //         parsedResponse["details"].forEach((element) {
+  //           try{
+  //           connectedProvidersList.add(ProviderModel.fromJson(element));
+  //           debugPrint("[connectedProviders] added successfully");
+  //           }
+  //           catch(e){
+  //             debugPrint("[connectedProviders] could not add $e");
+  //           }
+  //         });
+  //         ///      
+  //         ///
+  //         debugPrint("______: ${processingOrdersList.length}");
+  //         responseModel = ResponseModel(true, parsedResponse["msg"]);
+  //       }else{
+  //         responseModel = ResponseModel(false, parsedResponse["msg"]);
+  //       }
+  //     } else {
+  //       responseModel = ResponseModel(false, "Something went wrong");
+  //     }    
+  //     notifyToProvider();
+  //     return responseModel;
+  //   }catch(exception){
+  //     responseModel = ResponseModel(false, "Something went wrong"); 
+  //     notifyToProvider();
+  //     return responseModel;
+  //   }
+  // }
 
 Future<ResponseModel> connectedProviders(String token) async {
   connectedProvidersList.clear();
@@ -1811,7 +1977,7 @@ Future<ResponseModel> connectedProviders(String token) async {
       debugPrint(
           "[connectedProviders] response: $parsedResponse");
 
-      newOrders(token);
+      // newOrders(token);  5/3/2026
 
       if (parsedResponse["code"] == 200 ||
           parsedResponse["code"] == 2 ||
@@ -1857,6 +2023,192 @@ Future<ResponseModel> connectedProviders(String token) async {
   }
 }
 
+/*
+  Future<ResponseModel> getAppVersions()async{
+    notifyListeners();
+    ResponseModel responseModel;
+    try {
+      ApiResponse apiResponse = await appRepo.getAppVersions();
+      if (apiResponse.response != null && apiResponse.response!.statusCode == 200) {
+        var parsedResponse = jsonDecode(apiResponse.response!.body);
+     
+          debugPrint("[getAppVersions] orders inside are  $parsedResponse");
+         try{
+          final response = AppVersionResponse.fromJson(parsedResponse);
+          for (var element in response.results) {
+            if(element.releaseName.toUpperCase()=="U"){
+              print("currently checking version ${element.versionCode}");
+             versionUpdateFlag = compareVersions(element.versionCode, currentAppVersion); 
+             if(versionUpdateFlag==1 || versionUpdateFlag==0){
+              latestAppVersion=element;
+              break;
+             }
+            }
+          }
+          }catch(e){
+            print("[getAppVersions] error is $e");
+          }
+          responseModel = ResponseModel(true, parsedResponse["msg"]);
+        } else {
+        responseModel = ResponseModel(false, "Something went wrong");
+      }
+
+      readyProgress = false;
+      notifyToProvider();
+      return responseModel;
+    }catch(exception){
+      responseModel = ResponseModel(false, "Something went wrong");
+      readyProgress = false;
+      notifyToProvider();
+      return responseModel;
+    }
+  }
+
+  // to compare which version is latest
+  int compareVersions(String v1, String v2) {
+  List<int> parts1 = v1.split('.').map(int.parse).toList();
+  List<int> parts2 = v2.split('.').map(int.parse).toList();
+
+  int maxLength = parts1.length > parts2.length ? parts1.length : parts2.length;
+
+  for (int i = 0; i < maxLength; i++) {
+    int p1 = i < parts1.length ? parts1[i] : 0;
+    int p2 = i < parts2.length ? parts2[i] : 0;
+
+    if (p1 > p2) return 1;   // v1 is greater
+    if (p1 < p2) return -1;  // v2 is greater
+  }
+
+  return 0; // equal
+}
+
+/// to update app through esper
+Future<void> triggerEsperUpdate(BuildContext context) async {
+  // Replace these with your actual credentials
+  const String enterpriseId = 'dbcb2aa5-1fdf-4387-8a06-93e8274a2281';
+   String deviceId = "0f1c2e26-3c01-4c47-90fa-c5990bb2182c";
+  String newVersionId =   latestAppVersion.id;
+  const String apiKey = '7CV4PU3eOgcpOYALRgKqhElaiGODW4';
+
+  final url = Uri.parse('https://zsuoy-api.esper.cloud/api/v0/enterprise/$enterpriseId/command/');
+
+  final response = await http.post(
+    url,
+    headers: {
+      'Authorization': 'Bearer $apiKey',
+      'Content-Type': 'application/json',
+    },
+    body: jsonEncode({
+      "command_type": "DEVICE",
+      "devices": [deviceId],
+      "command": "INSTALL",
+      "command_args": {
+        "app_version": newVersionId,
+        "package_name": "com.eatsbee.order_receiving"
+      }
+    }),
+  );
+
+  if (response.statusCode == 201 || response.statusCode == 200) {
+    print("Update command sent successfully!");
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("update successful ${response.body}")));
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("[getEsperDeviceId] Failed to get device ID: ${response.body}")));
+
+    // print("[triggerEsperUpdate] Failed to trigger update: ${response.body}");
+  }
+}
+
+//converge device to latest blueprint  // not used yet
+Future<void> convergeDevice(String deviceId) async {
+  const String enterpriseId = 'dbcb2aa5-1fdf-4387-8a06-93e8274a2281';
+  const String apiKey = '7CV4PU3eOgcpOYALRgKqhElaiGODW4';
+  const String tenant = 'zsuoy'; // Your tenant name from the URL
+
+  final url = Uri.parse('https://$tenant-api.esper.cloud/api/v0/enterprise/$enterpriseId/command/');
+
+  final response = await http.post(
+    url,
+    headers: {
+      'Authorization': 'Bearer $apiKey',
+      'Content-Type': 'application/json',
+    },
+    body: jsonEncode({
+      "command_type": "DEVICE",
+      "devices": [deviceId],
+      "command": "CONVERGE",
+      "command_args": {},
+      "device_type": "all" 
+    }),
+  );
+
+  if (response.statusCode == 201 || response.statusCode == 200) {
+    print("Converge command sent. Device is now updating to the latest Blueprint.");
+  } else {
+    print("Converge failed: ${response.body}");
+  }
+}
+
+/// get device id from esper using serial number
+ getEsperDeviceId(String serial,BuildContext context) async {
+  final url = Uri.parse('https://zsuoy-api.esper.cloud/api/enterprise/dbcb2aa5-1fdf-4387-8a06-93e8274a2281/device/?serial=$serial');
+
+  final response = await http.get(
+    url,
+    headers: {'Authorization': 'Bearer 7CV4PU3eOgcpOYALRgKqhElaiGODW4'},
+  );
+
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    print("[getEsperDeviceId] response data is $data");
+    // Esper returns a list; grab the ID from the first result
+    if (data['results'].isNotEmpty) {
+      localdeviceId= data['results'][0]['id']; 
+      print("[getEsperDeviceId]1 decice id is $localdeviceId");
+    }
+    // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("[getEsperDeviceId]1 decice id is $localdeviceId")));
+    print("[getEsperDeviceId]2 decice id is $localdeviceId");
+  } else {
+    print("[getEsperDeviceId] Failed to get device ID: ${response.body}");
+    // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("[getEsperDeviceId] Failed to get device ID: ${response.body}")));
+  }
+
+}
+*/
+
+
+  Future<ResponseModel> unsetDefaultprinters( String token,
+      String printerId,
+      String type)async{
+      ResponseModel responseModel;
+    try {
+      ApiResponse apiResponse = await appRepo.unsetDefaultPrinter(token, printerId, type);
+       debugPrint("[updatePrinterLogs] apiResponse is ${apiResponse.response!.body}");
+ 
+      if (apiResponse.response != null && apiResponse.response!.statusCode == 200) {
+        var parsedResponse = jsonDecode(apiResponse.response!.body);
+        if(parsedResponse["code"] == 200 || parsedResponse["code"] == 2 || parsedResponse["code"] == 1){
+          responseModel = ResponseModel(true, parsedResponse["msg"]);
+        }else{
+          responseModel = ResponseModel(false, parsedResponse["msg"]);
+        }
+      } else {
+        responseModel = ResponseModel(false, "Something went wrong");
+      }
+
+      notifyToProvider();
+      return responseModel;
+     }catch(exception){
+      responseModel = ResponseModel(false, "Something went wrong");
+      notifyToProvider();
+      return responseModel;
+    }
+  }
+
+
+
+
+
 Future<ResponseModel> providerStatus(String token,String intgId ,int status) async {
   ResponseModel responseModel;
   try {
@@ -1900,11 +2252,9 @@ Map<String, List<AddonItems>> groupAddonsByPortion(
   for (var item in addonItems) {
 
     final id = item.pizzaPortionSectionId;
-
     final key = (id != null && id.trim().isNotEmpty)
         ? id.trim()
         : "no_portion";
-
     grouped.putIfAbsent(key, () => []);
     grouped[key]!.add(item);
   }

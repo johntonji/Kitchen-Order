@@ -6,9 +6,11 @@ import 'package:order_receiving/ui/reciept/view_image_receipt.dart';
 import 'package:order_receiving/utilities/shares_pref_manager.dart';
 
 class RecieptComponentsKitchen extends StatefulWidget {
-
+String logo;
+ String address;
+ String phone;
  Map<String,dynamic> recieptDataMap;
-   RecieptComponentsKitchen({super.key,required this.recieptDataMap});
+   RecieptComponentsKitchen({super.key,required this.recieptDataMap,required this.logo,required this.address,required this.phone});
 
   @override
   State<RecieptComponentsKitchen> createState() => _RecieptComponentsKitchenState();
@@ -23,11 +25,14 @@ class _RecieptComponentsKitchenState extends State<RecieptComponentsKitchen> {
  List<Map<String, dynamic>> data = [
     {"Preview Options": false},
     {"Ticket holder space": false},
+    {"Merchant Contact Details": false},
     {"Header": true},
     {"Order details": true},
     // {"Client Comment": true},
     {"Items": true},
     {"Is Paid": true},
+     {"Your info box 1": false},
+    {"Your info box 2": false},
     {"Packaging station quality control": true},
   ];
 
@@ -56,12 +61,18 @@ class _RecieptComponentsKitchenState extends State<RecieptComponentsKitchen> {
 
   // PreviewOptionsModel previewOptionsModel=PreviewOptionsModel.empty;
 HeaderModel headerModel=HeaderModel.empty; 
-
+ InfoBox1Model infoBox1Model=InfoBox1Model.empty;
+  InfoBox2Model infoBox2Model=InfoBox2Model.empty;
   OrderDetailsModel orderDetailsModel = OrderDetailsModel.empty;
   KitchenItemsModel kitchenItemsModel = KitchenItemsModel.empty;
   ContactDetailsModel contactDetailsModel = ContactDetailsModel.empty;
   PackagingQualityModel packagingQualityModel=PackagingQualityModel.empty;
 
+   TextEditingController box1TitleController = TextEditingController();
+  TextEditingController box1TextController = TextEditingController();
+
+  TextEditingController box2TitleController = TextEditingController();
+  TextEditingController box2TextController = TextEditingController();
 
   int onPermiseSize=12;
   int clientCommentSize = 10;
@@ -128,6 +139,18 @@ HeaderModel headerModel=HeaderModel.empty;
         "allItemsSize": packagingQualityModel.allItemsSize,
         "flyerSize": packagingQualityModel.flyerSize,
       },
+        "infoBox1Model":{
+       "titleSize":infoBox1Model.titleSize,
+       "textSize":infoBox1Model.textSize,
+       "title":box1TitleController.text,
+       "text":box1TextController.text,
+       },
+        "infoBox2Model":{
+       "titleSize":infoBox2Model.titleSize,
+       "textSize":infoBox2Model.textSize,
+       "title":box2TitleController.text,
+       "text":box2TextController.text,
+       },
 
       "clientCommentSize": clientCommentSize,
       "isPaidTitleSize": isPaidTitleSize,
@@ -155,9 +178,18 @@ HeaderModel headerModel=HeaderModel.empty;
      orderDetailsModel=receiptSettings.orderDetails;
      kitchenItemsModel=receiptSettings.items;
      packagingQualityModel=receiptSettings.packagingQualityModel;
-
+   contactDetailsModel=receiptSettings.contactDetails;
      clientCommentSize=receiptSettings.clientCommentSize;
      isPaidTitleSize=receiptSettings.isPaidTitleSize;
+     
+         infoBox1Model=receiptSettings.infoBox1Model;
+    infoBox2Model=receiptSettings.infoBox2Model;
+
+    box1TitleController.text=infoBox1Model.title!;
+    box2TitleController.text=infoBox2Model.title!;
+
+    box1TextController.text=infoBox1Model.text!;
+    box2TextController.text=infoBox2Model.text!;
 
      premiseTypeVal=receiptSettings.premiseTypeVal;
      premiseTypeFinalVal=receiptSettings.premiseTypeFinalVal;
@@ -189,20 +221,28 @@ HeaderModel headerModel=HeaderModel.empty;
               debugPrint("final list to show is $finalCompList");
              String filepath=await demoKitchenPdfGenerate(
                   previewOrdersVal,
+                  widget.phone,
+                  widget.address,
+                  contactDetailsModel,
+                  widget.logo,
                   previewTimesVal,
+                  
                   previewPaymentsVal,
                   blankLinesVal,
                   
                   headerModel,
                   onPermiseSize,
                   orderDetailsModel,
-               
+                 
                   kitchenItemsModel,
                   packagingQualityModel,
                  
                   clientCommentSize,
                   isPaidTitleSize,
                 
+                  InfoBox1Model(titleSize: infoBox1Model.titleSize, textSize: infoBox1Model.textSize, title: box1TitleController.text, text: box1TextController.text),
+                  InfoBox2Model(titleSize: infoBox2Model.titleSize, textSize: infoBox2Model.textSize, title: box2TitleController.text, text: box2TextController.text),
+                  
                   premiseTypeVal,
                   otherTextController.text.trim(),
                   premiseTypeFinalVal,
@@ -327,6 +367,347 @@ HeaderModel headerModel=HeaderModel.empty;
                     ],
                   ),
                   children: [
+
+                     if (item.keys.first == "Merchant Contact Details")
+                            Column(
+                              children: [
+                                ListTile(
+                                  title: Text("Name:"),
+                                  trailing: Container(
+                                    decoration: BoxDecoration(
+                                        border: Border.all(
+                                            color: Colors.black, width: 0.5),
+                                        borderRadius: BorderRadius.circular(10)),
+                                    padding: EdgeInsets.only(left: 6, right: 6),
+                                    child: DropdownButton(
+                                      underline: SizedBox(),
+                                      padding: EdgeInsets.all(5),
+                                      value: contactDetailsModel.nameSize,
+                                      icon: const Icon(Icons.keyboard_arrow_down),
+                                      items: fontSizes.map((int items) {
+                                        return DropdownMenuItem(
+                                          value: items,
+                                          child: Text("${items}px "),
+                                        );
+                                      }).toList(),
+                                      onChanged: (int? newValue) {
+                                        setState(() {
+                                          contactDetailsModel.nameSize = newValue!;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  height: 10,
+                                ),
+                                ListTile(
+                                  title: Text("Address:"),
+                                  trailing: Container(
+                                    decoration: BoxDecoration(
+                                        border: Border.all(
+                                            color: Colors.black, width: 0.5),
+                                        borderRadius: BorderRadius.circular(10)),
+                                    padding: EdgeInsets.only(left: 6, right: 6),
+                                    child: DropdownButton(
+                                      underline: SizedBox(),
+                                      padding: EdgeInsets.all(5),
+                                      value: contactDetailsModel.addressSize,
+                                      icon: const Icon(Icons.keyboard_arrow_down),
+                                      items: fontSizes.map((int items) {
+                                        return DropdownMenuItem(
+                                          value: items,
+                                          child: Text("${items}px "),
+                                        );
+                                      }).toList(),
+                                      onChanged: (int? newValue) {
+                                        setState(() {
+                                          contactDetailsModel.addressSize = newValue!;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  height: 10,
+                                ),
+                                ListTile(
+                                  title: Text("Phone:"),
+                                  trailing: Container(
+                                    decoration: BoxDecoration(
+                                        border: Border.all(
+                                            color: Colors.black, width: 0.5),
+                                        borderRadius: BorderRadius.circular(10)),
+                                    padding: EdgeInsets.only(left: 6, right: 6),
+                                    child: DropdownButton(
+                                      underline: SizedBox(),
+                                      padding: EdgeInsets.all(5),
+                                      value: contactDetailsModel.phoneSize,
+                                      icon: const Icon(Icons.keyboard_arrow_down),
+                                      items: fontSizes.map((int items) {
+                                        return DropdownMenuItem(
+                                          value: items,
+                                          child: Text("${items}px "),
+                                        );
+                                      }).toList(),
+                                      onChanged: (int? newValue) {
+                                        setState(() {
+                                          contactDetailsModel.phoneSize = newValue!;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                )
+                              ],
+                            ),
+
+                    if(item.keys.first=="Your info box 2")
+                      Column(
+                              children: [
+                                ListTile(
+                                  title: Text("Title:"),
+                                  trailing: Container(
+                                    decoration: BoxDecoration(
+                                        border: Border.all(
+                                            color: Colors.black, width: 0.5),
+                                        borderRadius: BorderRadius.circular(10)),
+                                    padding: EdgeInsets.only(left: 6, right: 6),
+                                    child: DropdownButton(
+                                      underline: SizedBox(),
+                                      padding: EdgeInsets.all(5),
+                                      value: infoBox2Model.titleSize,
+                                      icon: const Icon(Icons.keyboard_arrow_down),
+                                      items: fontSizes.map((int items) {
+                                        return DropdownMenuItem(
+                                          value: items,
+                                          child: Text("${items}px "),
+                                        );
+                                      }).toList(),
+                                      onChanged: (int? newValue) {
+                                        setState(() {
+                                          infoBox2Model.titleSize =
+                                              newValue!;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  height: 10,
+                                ),
+                                ListTile(
+                                  title: Text("Text:"),
+                                  trailing: Container(
+                                    decoration: BoxDecoration(
+                                        border: Border.all(
+                                            color: Colors.black, width: 0.5),
+                                        borderRadius: BorderRadius.circular(10)),
+                                    padding: EdgeInsets.only(left: 6, right: 6),
+                                    child: DropdownButton(
+                                      underline: SizedBox(),
+                                      padding: EdgeInsets.all(5),
+                                      value: infoBox2Model.textSize,
+                                      icon: const Icon(Icons.keyboard_arrow_down),
+                                      items: fontSizes.map((int items) {
+                                        return DropdownMenuItem(
+                                          value: items,
+                                          child: Text("${items}px "),
+                                        );
+                                      }).toList(),
+                                      onChanged: (int? newValue) {
+                                        setState(() {
+                                          infoBox2Model.textSize =  newValue!;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ),
+                
+                                 Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(top: 20),
+                        padding: const EdgeInsets.only(left: 16, right: 16),
+                        decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppAssets.widgetGrayColor, width: 1)
+                        ),
+                        child: TextField(
+                          keyboardType: TextInputType.text,
+                          obscureText: false,  
+                          controller: box2TitleController,
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            labelText: "Title",
+                            labelStyle: TextStyle(fontSize: 16, fontFamily: AppAssets.nunitoRegular,),
+                            floatingLabelStyle: TextStyle(fontSize: 18, fontFamily: AppAssets.nunitoMedium, color: AppAssets.textNormalGrayColor),
+                          ),
+                          cursorColor: AppAssets.widgetGrayColor,
+                          style: TextStyle(fontSize: 16, fontFamily: AppAssets.nunitoRegular, color: AppAssets.blackColor),
+                        onEditingComplete: (){
+                          setState(() {
+                          infoBox2Model.title=box2TitleController.text.trim();
+                          });
+                        },
+                        ),
+                      ),SizedBox(height: 15,),
+                        Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(top: 20),
+                        padding: const EdgeInsets.only(left: 16, right: 16),
+                        decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppAssets.widgetGrayColor, width: 1)
+                        ),
+                        child: TextField(
+                          maxLines: 4,
+                          maxLength: 200,
+                          keyboardType: TextInputType.text,
+                          obscureText: false,  
+                          controller: box2TextController,
+                          decoration: InputDecoration(
+                            floatingLabelAlignment: FloatingLabelAlignment.start,
+                            border: InputBorder.none,
+                            labelText: "Text",
+                            labelStyle: TextStyle(fontSize: 16, fontFamily: AppAssets.nunitoRegular,),
+                            floatingLabelStyle: TextStyle(fontSize: 18, fontFamily: AppAssets.nunitoMedium, color: AppAssets.textNormalGrayColor),
+                          ),
+                          cursorColor: AppAssets.widgetGrayColor,
+                          style: TextStyle(fontSize: 16, fontFamily: AppAssets.nunitoRegular, color: AppAssets.blackColor),
+                          onEditingComplete: (){
+                          setState(() {
+                          infoBox2Model.text=box2TextController.text.trim();
+                          });
+                        },
+                        ),
+                      ),
+                              ],
+                            ),
+                
+                             if(item.keys.first=="Your info box 1")
+                      Column(
+                              children: [
+                                ListTile(
+                                  title: Text("Title:"),
+                                  trailing: Container(
+                                    decoration: BoxDecoration(
+                                        border: Border.all(
+                                            color: Colors.black, width: 0.5),
+                                        borderRadius: BorderRadius.circular(10)),
+                                    padding: EdgeInsets.only(left: 6, right: 6),
+                                    child: DropdownButton(
+                                      underline: SizedBox(),
+                                      padding: EdgeInsets.all(5),
+                                      value: infoBox1Model.titleSize,
+                                      icon: const Icon(Icons.keyboard_arrow_down),
+                                      items: fontSizes.map((int items) {
+                                        return DropdownMenuItem(
+                                          value: items,
+                                          child: Text("${items}px "),
+                                        );
+                                      }).toList(),
+                                      onChanged: (int? newValue) {
+                                        setState(() {
+                                          infoBox1Model.titleSize = newValue!;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  height: 10,
+                                ),
+                                ListTile(
+                                  title: Text("Text:"),
+                                  trailing: Container(
+                                    decoration: BoxDecoration(
+                                        border: Border.all(
+                                            color: Colors.black, width: 0.5),
+                                        borderRadius: BorderRadius.circular(10)),
+                                    padding: EdgeInsets.only(left: 6, right: 6),
+                                    child: DropdownButton(
+                                      underline: SizedBox(),
+                                      padding: EdgeInsets.all(5),
+                                      value: infoBox1Model.textSize,
+                                      icon: const Icon(Icons.keyboard_arrow_down),
+                                      items: fontSizes.map((int items) {
+                                        return DropdownMenuItem(
+                                          value: items,
+                                          child: Text("${items}px "),
+                                        );
+                                      }).toList(),
+                                      onChanged: (int? newValue) {
+                                        setState(() {
+                                          infoBox1Model.textSize =  newValue!;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ),
+                
+                                 Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(top: 20),
+                        padding: const EdgeInsets.only(left: 16, right: 16),
+                        decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppAssets.widgetGrayColor, width: 1)
+                        ),
+                        child: TextField(
+                          keyboardType: TextInputType.text,
+                          obscureText: false,  
+                          controller: box1TitleController,
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            labelText: "Title",
+                            labelStyle: TextStyle(fontSize: 16, fontFamily: AppAssets.nunitoRegular,),
+                            floatingLabelStyle: TextStyle(fontSize: 18, fontFamily: AppAssets.nunitoMedium, color: AppAssets.textNormalGrayColor),
+                          ),
+                          cursorColor: AppAssets.widgetGrayColor,
+                          style: TextStyle(fontSize: 16, fontFamily: AppAssets.nunitoRegular, color: AppAssets.blackColor),
+                           onEditingComplete: (){
+                          setState(() {
+                          infoBox1Model.title=box1TitleController.text.trim();
+                          });
+                        },
+                        ),
+                      ),SizedBox(height: 15,),
+                        Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(top: 20),
+                        padding: const EdgeInsets.only(left: 16, right: 16),
+                        decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppAssets.widgetGrayColor, width: 1)
+                        ),
+                        child: TextField(
+                          maxLines: 4,
+                          maxLength: 200,
+                          keyboardType: TextInputType.text,
+                          obscureText: false,  
+                          controller: box1TextController,
+                          decoration: InputDecoration(
+                            floatingLabelAlignment: FloatingLabelAlignment.start,
+                            border: InputBorder.none,
+                            labelText: "Text",
+                            labelStyle: TextStyle(fontSize: 16, fontFamily: AppAssets.nunitoRegular,),
+                            floatingLabelStyle: TextStyle(fontSize: 18, fontFamily: AppAssets.nunitoMedium, color: AppAssets.textNormalGrayColor),
+                          ),
+                          cursorColor: AppAssets.widgetGrayColor,
+                          style: TextStyle(fontSize: 16, fontFamily: AppAssets.nunitoRegular, color: AppAssets.blackColor),
+                         onEditingComplete: (){
+                          setState(() {
+                          infoBox1Model.text=box1TextController.text.trim();
+                          });
+                        },
+                        ),
+                      ),
+                     ],
+                     ),
+
                     if (item.keys.first == "Preview Options")
                       Column(
                         children: [

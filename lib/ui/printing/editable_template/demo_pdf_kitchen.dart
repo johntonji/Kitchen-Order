@@ -1,5 +1,8 @@
 import 'package:order_receiving/main.dart';
 import 'package:order_receiving/models/reciept_modal.dart';
+import 'package:order_receiving/providers/app_provider.dart';
+import 'package:order_receiving/ui/printing/dynamic_template/print_pdf_dyn_client.dart';
+import 'package:order_receiving/ui/printing/editable_template/demo_pdf_client.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart';
 import 'dart:io';
@@ -9,6 +12,10 @@ import 'package:pdf/widgets.dart' as pw;
 
 Future<String> demoKitchenPdfGenerate(
     String previewOrdersVal,
+     String phone,
+       String address,
+    ContactDetailsModel contactDetailsModel,
+    String logo,
     String previewTimesVal,
     String previewPaymentsVal,
     int blankLinesVal,
@@ -19,6 +26,9 @@ Future<String> demoKitchenPdfGenerate(
     PackagingQualityModel packagingQualityModel,
     int clientCommentSize,
     int isPaidTitleSize,
+
+    InfoBox1Model infoBox1Model,
+    InfoBox2Model infoBox2Model,
 
     String premiseTypeVal,
     String otherPremise, String premiseTypeFinalVal,
@@ -42,6 +52,8 @@ Future<String> demoKitchenPdfGenerate(
   final Uint8List checkedImageBytes = checkedImageData.buffer.asUint8List();
   final pw.ImageProvider checkedImage = pw.MemoryImage(checkedImageBytes);  
 
+   Uint8List imageBytes = convertBase64Image(logo);
+   final pw.ImageProvider logoImage =await getGrayscalePdfImage(imageBytes);  
 
     // Add receipt content
     pdf.addPage(
@@ -49,6 +61,34 @@ Future<String> demoKitchenPdfGenerate(
         pageFormat: PdfPageFormat.roll80, // 80mm receipt size
         build: (pw.Context context) {
           return pw.Column(
+            children: [
+              if(finalCompList.contains("Merchant Contact Details"))
+                 pw.Image(logoImage, width: 50, height: 70), 
+                 SizedBox(height: 6),
+                 if(finalCompList.contains("Merchant Contact Details"))
+                 Column(
+                  children: [
+                    pw.Text(
+                          textAlign: TextAlign.center,
+                       (AppProvider.restaurantName != null)? AppProvider.restaurantName!: "",
+                            style: pw.TextStyle(
+                                fontSize:
+                                    contactDetailsModel.nameSize!.toDouble())),
+                        pw.Text(
+                          textAlign: TextAlign.center,
+                       (address!=null)? formatAddress(address): "",
+                            style: pw.TextStyle(
+                                fontSize:
+                                    contactDetailsModel.addressSize!.toDouble())),
+                    pw.Text(
+                        textAlign: TextAlign.center,
+                         (phone!=null || phone!="") ?"$phone": "",
+                            style: pw.TextStyle(
+                                fontSize:
+                                    contactDetailsModel.phoneSize!.toDouble())),
+                  ]
+                 ),
+               pw.Column(
             children: List.generate(finalCompList.length, (finalIndex){
         return  pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -85,8 +125,52 @@ Future<String> demoKitchenPdfGenerate(
          pw.SizedBox(height: 15),
               ]
             ),
-                
+            pw.Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                            pw.Column(
+           crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+                if(finalCompList[finalIndex]=="Your info box 1")
+     pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          infoBox1Model.title!,
+          textAlign: TextAlign.left,
+          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: infoBox1Model.titleSize!.toDouble()),
+        ),
+        SizedBox(height: 6),
+        pw.Container(
+          width: 180,
+          child: pw.Text(infoBox1Model.text!, style: pw.TextStyle(color: PdfColors.black, fontSize: infoBox1Model.textSize!.toDouble()),maxLines: 6)),
+        SizedBox(height: 15),
+
+      ]
+     ),
+     if(finalCompList[finalIndex]=="Your info box 2")
+     pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          infoBox2Model.title!,
+          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: infoBox2Model.titleSize!.toDouble()),
+        ),
+        SizedBox(height: 6),
+        pw.Container(
+          width: 180,
+          child:pw.Text(
+             infoBox2Model.text!, style: pw.TextStyle(color: PdfColors.black, fontSize: infoBox2Model.textSize!.toDouble()),maxLines: 6) )
+       
+       , SizedBox(height: 15),
+      ]
+     ),
+          ]
+        ),     
     
+              ]
+            ),
+      
         
       
       if(finalCompList[finalIndex]=="Order details")
@@ -287,7 +371,10 @@ Future<String> demoKitchenPdfGenerate(
           );
 
             })
-          );
+          )
+        
+          ]);
+         
         },
       ),
     );

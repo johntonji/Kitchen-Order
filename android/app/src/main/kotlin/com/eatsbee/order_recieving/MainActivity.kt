@@ -57,7 +57,8 @@ class MainActivity: FlutterActivity() {
     private lateinit var nsdManager: NsdManager
     private val discoveredPrinters = mutableListOf<Map<String, String>>()
     private var result: MethodChannel.Result? = null
-
+    private val activeDiscoveryListeners = mutableSetOf<NsdManager.DiscoveryListener>()    // A
+ 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // val config = com.bugsnag.android.Configuration("d884b2f8bd6f92d6f08c6d7d88973161")
@@ -90,7 +91,7 @@ class MainActivity: FlutterActivity() {
                   this.result = result
                 discoverPrintersForFlutter()
             }
-            else if (call.method == "printPdfWithStar") {
+            else if (call.method == "printPdfWithStar") {    
                 val identifier = call.argument<String>("identifier")
                 val pdfPath = call.argument<String>("pdfPath")
         
@@ -117,63 +118,149 @@ class MainActivity: FlutterActivity() {
 
 
     }
-    private fun discoverPrintersForFlutter(): MutableList<Map<String, String>> {
-        
-        val printersList = mutableListOf<Map<String, String>>()
+    private fun discoverPrintersForFlutter() {
+    discoveredPrinters.clear()
 
-        val printerServiceTypes = arrayOf(
-            "_ipp._tcp.",
-            "_printer._tcp.",
-            "_pdl-datastream._tcp.",
-            "_http._tcp.",
-            "_ipps._tcp.",
-            "_socket._tcp.",
-            "_starprinter._tcp."
-        )
-        discoveredPrinters.clear()
-        printerServiceTypes.forEach { serviceType ->
+    val printerServiceTypes = arrayOf(
+        "_ipp._tcp.",
+        "_printer._tcp.",
+        "_pdl-datastream._tcp.",
+        "_http._tcp.",
+        "_ipps._tcp.",
+        "_socket._tcp.",
+        "_starprinter._tcp."
+    )
+
+    printerServiceTypes.forEach { serviceType ->
+        val listener = object : NsdManager.DiscoveryListener {
+            override fun onDiscoveryStarted(regType: String) {
+                Log.d("PrinterDiscovery", "Started discovery for: $regType")
+            }
+
+            override fun onServiceFound(service: NsdServiceInfo) {
+                nsdManager.resolveService(service, object : NsdManager.ResolveListener {
+                    override fun onServiceResolved(resolvedService: NsdServiceInfo) {
+                        val ip = resolvedService.host?.hostAddress ?: return
+                        val port = resolvedService.port
+                        val key = "$ip:$port"  // basic deduplication
+
+                        // Avoid adding duplicates
+                        if (discoveredPrinters.any { it["ip"] == ip && it["port"] == port.toString() }) {
+                            return
+                        }
+
+                        val printerInfo = mapOf(
+                            "name" to (resolvedService.serviceName ?: "Unknown"),
+                            "ip" to ip,
+                            "port" to port.toString(),
+                            "type" to resolvedService.serviceType
+                        )
+
+                        discoveredPrinters.add(printerInfo)
+                        Log.d("PrinterDiscovery", "Resolved: $printerInfo")
+                    }
+
+                    override fun onResolveFailed(service: NsdServiceInfo, errorCode: Int) {
+                        Log.w("PrinterDiscovery", "Resolve failed for ${service.serviceName}: $errorCode")
+                    }
+                })
+            }
+
+            override fun onServiceLost(service: NsdServiceInfo) {
+                Log.d("PrinterDiscovery", "Service lost: ${service.serviceName}")
+            }
+
+            override fun onDiscoveryStopped(serviceType: String) {
+                Log.d("PrinterDiscovery", "Discovery stopped for: $serviceType")
+            }
+
+            override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
+                Log.e("PrinterDiscovery", "Start discovery failed for $serviceType: $errorCode")
+            }
+
+            override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {
+                Log.e("PrinterDiscovery", "Stop discovery failed for $serviceType: $errorCode")
+            }
+        }
+
+        // Remember this listener so we can stop it later
+        activeDiscoveryListeners.add(listener)
+
+        try {
             nsdManager.discoverServices(
                 serviceType,
                 NsdManager.PROTOCOL_DNS_SD,
-                object : NsdManager.DiscoveryListener {
-                    override fun onDiscoveryStarted(regType: String) {
-                        Log.d("PrinterDiscovery", "Started: $regType")
-                    }
+                listener
+            )
+        } catch (e: Exception) {
+            Log.e("PrinterDiscovery", "Failed to start discovery for $serviceType", e)
+        }
+    }
+
+    // Give some time for resolutions (you can make this smarter later)
+    Handler(Looper.getMainLooper()).postDelayed({
+        result?.success(discoveredPrinters.toList())  // safe copy
+        result = null  // prevent double-calling
+    }, 6000)  // ← increased slightly; consider making configurable or event-based
+}
+
+    // private fun discoverPrintersForFlutter(): MutableList<Map<String, String>> {
+        
+    //     val printersList = mutableListOf<Map<String, String>>()
+
+    //     val printerServiceTypes = arrayOf(
+    //         "_ipp._tcp.",
+    //         "_printer._tcp.",
+    //         "_pdl-datastream._tcp.",
+    //         "_http._tcp.",
+    //         "_ipps._tcp.",
+    //         "_socket._tcp.",
+    //         "_starprinter._tcp."
+    //     )
+    //     discoveredPrinters.clear()
+    //     printerServiceTypes.forEach { serviceType ->
+    //         nsdManager.discoverServices(
+    //             serviceType,
+    //             NsdManager.PROTOCOL_DNS_SD,
+    //             object : NsdManager.DiscoveryListener {
+    //                 override fun onDiscoveryStarted(regType: String) {
+    //                     Log.d("PrinterDiscovery", "Started: $regType")
+    //                 }
  
-                    override fun onServiceFound(service: NsdServiceInfo) {
-                        nsdManager.resolveService(service, object : NsdManager.ResolveListener {
-                            override fun onServiceResolved(service: NsdServiceInfo) {
-                                val printerInfo = mapOf(
-                                    "name" to service.serviceName,
-                                    "ip" to (service.host?.hostAddress ?: "unknown"),
-                                    "port" to service.port.toString(),
-                                    "type" to service.serviceType
-                                )
-                                discoveredPrinters.add(printerInfo)
-                                 printersList.add(printerInfo)
-                            }
+    //                 override fun onServiceFound(service: NsdServiceInfo) {
+    //                     nsdManager.resolveService(service, object : NsdManager.ResolveListener {
+    //                         override fun onServiceResolved(service: NsdServiceInfo) {
+    //                             val printerInfo = mapOf(
+    //                                 "name" to service.serviceName,
+    //                                 "ip" to (service.host?.hostAddress ?: "unknown"),
+    //                                 "port" to service.port.toString(),
+    //                                 "type" to service.serviceType
+    //                             )
+    //                             discoveredPrinters.add(printerInfo)
+    //                              printersList.add(printerInfo)
+    //                         }
  
-                            override fun onResolveFailed(service: NsdServiceInfo, errorCode: Int) {
-                                Log.d("PrinterDiscovery", "Resolve failed: $errorCode")
-                            }
-                        })
-                    }
+    //                         override fun onResolveFailed(service: NsdServiceInfo, errorCode: Int) {
+    //                             Log.d("PrinterDiscovery", "Resolve failed: $errorCode")
+    //                         }
+    //                     })
+    //                 }
  
                 
-                    override fun onServiceLost(service: NsdServiceInfo) {}
-                    override fun onDiscoveryStopped(serviceType: String) {}
-                    override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
-                        // result?.error("DISCOVERY_FAILED", "Failed to start discovery", null)
-                    }
-                    override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {}
-                }
-            )
-        }
-        Handler(Looper.getMainLooper()).postDelayed({
-        result?.success(discoveredPrinters)
-    }, 5000)
-        return printersList
-    }
+    //                 override fun onServiceLost(service: NsdServiceInfo) {}
+    //                 override fun onDiscoveryStopped(serviceType: String) {}
+    //                 override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
+    //                     // result?.error("DISCOVERY_FAILED", "Failed to start discovery", null)
+    //                 }
+    //                 override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {}
+    //             }
+    //         )
+    //     }
+    //     Handler(Looper.getMainLooper()).postDelayed({
+    //     result?.success(discoveredPrinters)
+    // }, 5000)
+    //     return printersList
+    // }
 
 object StarPrinterHelper {
  
@@ -363,15 +450,32 @@ object StarPrinterHelper {
 //     }
 
 // }
+    // override fun onDestroy() {
+    //     nsdManager.stopServiceDiscovery(object : NsdManager.DiscoveryListener {
+    //         override fun onDiscoveryStarted(regType: String) {}
+    //         override fun onServiceFound(service: NsdServiceInfo) {}
+    //         override fun onServiceLost(service: NsdServiceInfo) {}
+    //         override fun onDiscoveryStopped(serviceType: String) {}
+    //         override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {}
+    //         override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {}
+    //     })
+    //     super.onDestroy()
+    // }
+    
     override fun onDestroy() {
-        nsdManager.stopServiceDiscovery(object : NsdManager.DiscoveryListener {
-            override fun onDiscoveryStarted(regType: String) {}
-            override fun onServiceFound(service: NsdServiceInfo) {}
-            override fun onServiceLost(service: NsdServiceInfo) {}
-            override fun onDiscoveryStopped(serviceType: String) {}
-            override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {}
-            override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {}
-        })
-        super.onDestroy()
+    // Stop only the listeners we actually started
+    activeDiscoveryListeners.forEach { listener ->
+        try {
+            nsdManager.stopServiceDiscovery(listener)
+        } catch (e: IllegalArgumentException) {
+            // Already stopped or invalid → safe to ignore
+            Log.w("NsdCleanup", "Listener already unregistered", e)
+        } catch (e: Exception) {
+            Log.w("NsdCleanup", "Error stopping discovery", e)
+        }
     }
+    activeDiscoveryListeners.clear()
+
+    super.onDestroy()
+}
 }
